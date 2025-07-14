@@ -27,8 +27,12 @@ class LevelGenerator {
         gameInstance.itemManager.placeSupplies(gameInstance);
         gameInstance.itemManager.placeSpecialSupplies(gameInstance);
         
-        // エレベーターを配置
-        this.placeElevator(gameInstance);
+        // エレベーターを配置（デッキ20では配置しない - 最終マップ）
+        if (gameInstance.floor < 20) {
+            this.placeElevator(gameInstance);
+        } else {
+            gameInstance.addCombatLog('🏁 最終デッキ - エレベーターは機能していません');
+        }
         
         // 視界を計算
         gameInstance.renderManager.calculateVisibility(gameInstance);

@@ -6,6 +6,8 @@ class SoundManager {
         this.synths = {};
         this.loops = {};
         this.initialized = false;
+        this.currentBGM = 'deck1'; // 現在のBGMトラック
+        this.bgmTracks = {}; // BGMトラックの管理
     }
     
     async init() {
@@ -78,7 +80,7 @@ class SoundManager {
         this.synths.collect.connect(delay);
         
         // BGM用のシーケンサー
-        this.createBGM();
+        this.createAllBGMs();
         
         // 環境音の作成
         this.createAmbientSounds();
@@ -89,29 +91,87 @@ class SoundManager {
         this.initialized = true;
     }
     
-    createBGM() {
-        // スペースアンビエントBGM
-        const bgmNotes = ['C2', 'G2', 'E2', 'A2'];
+    createAllBGMs() {
+        // デッキ1-5: 穏やかな探索BGM
+        this.bgmTracks.deck1 = this.createBGMTrack({
+            name: 'deck1',
+            notes: ['C2', 'G2', 'E2', 'A2'],
+            tempo: '2n',
+            volume: 0.1,
+            highNoteChance: 0.7,
+            description: '穏やかな探索'
+        });
+        
+        // デッキ6-10: 少し緊張感のある音楽
+        this.bgmTracks.deck6 = this.createBGMTrack({
+            name: 'deck6',
+            notes: ['D2', 'A2', 'F2', 'Bb2'],
+            tempo: '4n',
+            volume: 0.12,
+            highNoteChance: 0.6,
+            description: '緊張感の高まり'
+        });
+        
+        // デッキ11-14: 危険な雰囲気
+        this.bgmTracks.deck11 = this.createBGMTrack({
+            name: 'deck11',
+            notes: ['E2', 'B2', 'G2', 'C3'],
+            tempo: '8n',
+            volume: 0.15,
+            highNoteChance: 0.5,
+            description: '危険な雰囲気'
+        });
+        
+        // デッキ15-19: 高い緊迫感
+        this.bgmTracks.deck15 = this.createBGMTrack({
+            name: 'deck15',
+            notes: ['F#2', 'C#3', 'A2', 'D3'],
+            tempo: '8n',
+            volume: 0.18,
+            highNoteChance: 0.4,
+            description: '高い緊迫感'
+        });
+        
+        // デッキ20: 最終マップ - 最も緊迫感のある音楽
+        this.bgmTracks.deck20 = this.createBGMTrack({
+            name: 'deck20',
+            notes: ['G2', 'D3', 'Bb2', 'Eb3'],
+            tempo: '16n',
+            volume: 0.2,
+            highNoteChance: 0.3,
+            description: '最終決戦'
+        });
+    }
+    
+    createBGMTrack(config) {
         let noteIndex = 0;
         
-        this.loops.bgm = new Tone.Loop((time) => {
-            if (this.enabled) {
+        const loop = new Tone.Loop((time) => {
+            if (this.enabled && this.currentBGM === config.name) {
                 try {
-                    const note = bgmNotes[noteIndex % bgmNotes.length];
-                    this.synths.bgm.triggerAttackRelease(note, '2n', time, 0.1);
+                    const note = config.notes[noteIndex % config.notes.length];
+                    this.synths.bgm.triggerAttackRelease(note, config.tempo, time, config.volume);
                     
-                    // 高音の装飾 - スケジューリング時間を使用
-                    if (Math.random() > 0.7) {
+                    // 高音の装飾
+                    if (Math.random() > config.highNoteChance) {
                         const highNote = Tone.Frequency(note).transpose(24).toNote();
-                        this.synths.bgm.triggerAttackRelease(highNote, '8n', time + Tone.Time('8n').toSeconds(), 0.05);
+                        this.synths.bgm.triggerAttackRelease(highNote, '16n', time + Tone.Time('16n').toSeconds(), config.volume * 0.5);
+                    }
+                    
+                    // 低音の重厚感（デッキ15以降）
+                    if (config.name === 'deck15' || config.name === 'deck20') {
+                        const lowNote = Tone.Frequency(note).transpose(-12).toNote();
+                        this.synths.bgm.triggerAttackRelease(lowNote, config.tempo, time + Tone.Time('32n').toSeconds(), config.volume * 0.3);
                     }
                     
                     noteIndex++;
                 } catch (e) {
-                    console.warn('BGM playback error:', e);
+                    console.warn(`BGM ${config.name} playback error:`, e);
                 }
             }
-        }, '2n');
+        }, config.tempo);
+        
+        return loop;
     }
     
     createAmbientSounds() {
@@ -468,13 +528,47 @@ class SoundManager {
     
     start() {
         if (this.initialized) {
-            // ループを開始
-            this.loops.bgm.start(0);
+            // 全てのBGMトラックを開始
+            Object.values(this.bgmTracks).forEach(track => {
+                track.start(0);
+            });
+            
             this.loops.beep.start(0);
             this.loops.ventilation.start(0);
             
             // トランスポートを開始
             Tone.Transport.start();
+        }
+    }
+    
+    // BGMを切り替えるメソッド
+    changeBGM(floor) {
+        let newBGM = 'deck1';
+        
+        if (floor >= 20) {
+            newBGM = 'deck20';
+        } else if (floor >= 15) {
+            newBGM = 'deck15';
+        } else if (floor >= 11) {
+            newBGM = 'deck11';
+        } else if (floor >= 6) {
+            newBGM = 'deck6';
+        }
+        
+        if (this.currentBGM !== newBGM) {
+            const oldBGM = this.currentBGM;
+            this.currentBGM = newBGM;
+            
+            // BGM切り替えをログに出力
+            console.log(`BGM changed from ${oldBGM} to ${newBGM} (Floor ${floor})`);
+            
+            // 短いフェードアウト・フェードイン効果のための音量調整
+            if (this.enabled && this.initialized) {
+                this.synths.bgm.volume.rampTo(Tone.gainToDb(this.bgmVolume * 0.5), 0.5);
+                setTimeout(() => {
+                    this.synths.bgm.volume.rampTo(Tone.gainToDb(this.bgmVolume), 0.5);
+                }, 500);
+            }
         }
     }
     

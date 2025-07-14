@@ -158,6 +158,21 @@ class UpgradeManager {
         gameInstance.floor++;
         gameInstance.maxFloorReached = Math.max(gameInstance.maxFloorReached, gameInstance.floor);
         gameInstance.elevatorPlaced = false; // エレベーターフラグをリセット
+        
+        // BGMを切り替え
+        gameInstance.soundManager.changeBGM(gameInstance.floor);
+        
+        // 特定のデッキでメッセージを表示
+        if (gameInstance.floor === 6) {
+            gameInstance.addCombatLog('📢 警告: より危険なエリアに突入しています');
+        } else if (gameInstance.floor === 11) {
+            gameInstance.addCombatLog('🚨 高危険区域: 強力な敵が待ち受けています');
+        } else if (gameInstance.floor === 15) {
+            gameInstance.addCombatLog('⚠️ 最大危険区域: 生存確率が大幅に低下しています');
+        } else if (gameInstance.floor === 20) {
+            gameInstance.addCombatLog('🔥 最終デッキ: 最後の戦いが始まります');
+        }
+        
         gameInstance.addCombatLog(`=== デッキ ${gameInstance.floor} ===`);
         gameInstance.soundManager.playElevator();
         gameInstance.levelGenerator.generateLevel(gameInstance);
