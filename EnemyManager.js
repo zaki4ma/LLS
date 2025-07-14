@@ -1,0 +1,146 @@
+class EnemyManager {
+    constructor() {
+        this.aliens = [];
+    }
+
+    placeAliens(gameInstance) {
+        this.aliens = [];
+        const numAliens = 3 + Math.floor(Math.random() * 4) + Math.floor(gameInstance.floor / 2);
+        
+        for (let i = 0; i < numAliens; i++) {
+            let x, y;
+            let attempts = 0;
+            
+            do {
+                x = Math.floor(Math.random() * gameInstance.gridSize);
+                y = Math.floor(Math.random() * gameInstance.gridSize);
+                attempts++;
+            } while (gameInstance.grid[y][x] !== 'floor' && attempts < 50);
+            
+            if (attempts < 50) {
+                const alienType = this.selectAlienType(gameInstance.floor);
+                const level = gameInstance.floor + Math.floor(Math.random() * 2);
+                
+                const alien = { 
+                    x, y, 
+                    hp: ENEMY_SCALING.baseHp + level * ENEMY_SCALING.hpPerLevel, 
+                    maxHp: ENEMY_SCALING.baseHp + level * ENEMY_SCALING.hpPerLevel,
+                    attack: ENEMY_SCALING.baseAttack + level * ENEMY_SCALING.attackPerLevel, 
+                    defense: ENEMY_SCALING.baseDefense + level * ENEMY_SCALING.defensePerLevel,
+                    alive: true, 
+                    level, 
+                    expReward: ENEMY_SCALING.expReward + level * ENEMY_SCALING.expPerLevel,
+                    goldReward: ENEMY_SCALING.goldReward + level * ENEMY_SCALING.goldPerLevel,
+                    type: alienType,
+                    typeData: ALIEN_TYPES[alienType]
+                };
+                
+                this.aliens.push(alien);
+                gameInstance.grid[y][x] = 'alien';
+            }
+        }
+        
+        gameInstance.aliens = this.aliens;
+    }
+
+    selectAlienType(floor) {
+        const weights = ENEMY_SPAWN_WEIGHTS[Math.min(floor, 20)] || ENEMY_SPAWN_WEIGHTS[20];
+        const availableTypes = Object.keys(weights);
+        
+        let totalWeight = 0;
+        Object.values(weights).forEach(weight => totalWeight += weight);
+        
+        let random = Math.random() * totalWeight;
+        for (let type of availableTypes) {
+            random -= weights[type];
+            if (random <= 0) {
+                return type;
+            }
+        }
+        
+        return 'BASIC';
+    }
+
+    moveAliens(gameInstance) {
+        for (const alien of this.aliens) {
+            if (!alien.alive) continue;
+            
+            // プレイヤーとの距離を計算
+            const distance = Math.abs(alien.x - gameInstance.playerManager.player.x) + 
+                           Math.abs(alien.y - gameInstance.playerManager.player.y);
+            
+            // 隣接している場合は攻撃
+            if (distance === 1) {
+                this.alienAttackPlayer(alien, gameInstance);
+                continue;
+            }
+            
+            // 検知範囲内にいる場合は追跡
+            if (distance <= alien.typeData.detectionRange) {
+                this.moveAlienTowardsPlayer(alien, gameInstance);
+            }
+        }
+    }
+
+    moveAlienTowardsPlayer(alien, gameInstance) {
+        const player = gameInstance.playerManager.player;
+        const dx = player.x - alien.x;
+        const dy = player.y - alien.y;
+        
+        let moveX = 0, moveY = 0;
+        
+        if (Math.abs(dx) > Math.abs(dy)) {
+            moveX = dx > 0 ? 1 : -1;
+        } else {
+            moveY = dy > 0 ? 1 : -1;
+        }
+        
+        const newX = alien.x + moveX;
+        const newY = alien.y + moveY;
+        
+        // 移動先が有効かチェック
+        if (newX >= 0 && newX < gameInstance.gridSize && newY >= 0 && newY < gameInstance.gridSize) {
+            const cellType = gameInstance.grid[newY][newX];
+            
+            // ファントムは隔壁を通り抜けられる
+            const canMove = cellType === 'floor' || 
+                           (alien.typeData.phaseThrough && cellType === 'bulkhead');
+            
+            if (canMove) {
+                gameInstance.grid[alien.y][alien.x] = 'floor';
+                alien.x = newX;
+                alien.y = newY;
+                gameInstance.grid[alien.y][alien.x] = 'alien';
+            }
+        }
+    }
+
+    alienAttackPlayer(alien, gameInstance) {
+        const player = gameInstance.playerManager.player;
+        let damage = Math.max(1, alien.attack - player.defense);
+        
+        // 特殊攻撃処理
+        if (alien.typeData.oxygenDrain) {
+            // サイキック・エイリアンの酸素攻撃
+            const oxygenDamage = 15;
+            player.oxygen = Math.max(0, player.oxygen - oxygenDamage);
+            gameInstance.addCombatLog(`${alien.typeData.name}が精神攻撃！ 酸素-${oxygenDamage}, HP-${damage}`);
+            
+            // 酸素ダメージエフェクト
+            gameInstance.renderManager.showFloatingText(player.x, player.y, `-15 O₂`, '#00aaff');
+        } else {
+            gameInstance.addCombatLog(`${alien.typeData.name}の攻撃！ ${damage}ダメージ！`);
+        }
+        
+        // プレイヤーにダメージを与える
+        gameInstance.playerManager.takeDamage(damage, gameInstance);
+    }
+
+    getAliveAliens() {
+        return this.aliens.filter(a => a.alive);
+    }
+
+    getAlienAt(x, y) {
+        return this.aliens.find(a => a.x === x && a.y === y && a.alive);
+    }
+}
