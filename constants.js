@@ -172,7 +172,7 @@ const ABILITIES = {
         key: 'E',
         cost: 100,
         minFloor: 1,
-        description: '次の攻撃を完全に無効化',
+        description: '3ターンの間、全ての攻撃を無効化',
         category: 'basic'
     },
     blast: {

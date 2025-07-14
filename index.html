@@ -463,6 +463,21 @@
             }
         }
         
+        @keyframes shieldPulse {
+            0% { 
+                box-shadow: 0 0 15px #00ffff;
+                border-color: #00ffff;
+            }
+            50% { 
+                box-shadow: 0 0 25px #00ffff, 0 0 35px #00aaff;
+                border-color: #00aaff;
+            }
+            100% { 
+                box-shadow: 0 0 15px #00ffff;
+                border-color: #00ffff;
+            }
+        }
+        
         .combat-log {
             background: linear-gradient(135deg, #0a1420 0%, #1a2540 100%);
             border: 2px solid #00aaff;

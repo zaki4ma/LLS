@@ -16,6 +16,7 @@ class PlayerManager {
                 autoMedic: { unlocked: false, passive: true }
             },
             shieldActive: false,
+            shieldDuration: 0, // シールドの残りターン数
             facing: 'down' // プレイヤーの向き: 'up', 'down', 'left', 'right'
         };
     }
@@ -173,6 +174,15 @@ class PlayerManager {
         
         // 電力は自然減少しない（武器使用時のみ消費）
         
+        // シールドの持続時間を管理
+        if (this.player.shieldActive && this.player.shieldDuration > 0) {
+            this.player.shieldDuration--;
+            if (this.player.shieldDuration <= 0) {
+                this.player.shieldActive = false;
+                gameInstance.addCombatLog('シールドが解除されました');
+            }
+        }
+        
         if (this.player.oxygen <= 0) {
             const suffocationDamage = 5;
             this.player.hp -= suffocationDamage;
@@ -255,7 +265,8 @@ class PlayerManager {
 
     executeShield(gameInstance) {
         this.player.shieldActive = true;
-        gameInstance.addCombatLog('シールドを展開！次の攻撃を無効化します');
+        this.player.shieldDuration = 3; // 3ターン持続
+        gameInstance.addCombatLog('シールドを展開！3ターンの間、全ての攻撃を無効化します');
         gameInstance.soundManager.playShieldEffect();
     }
 
@@ -336,8 +347,7 @@ class PlayerManager {
     takeDamage(damage, gameInstance) {
         // シールドが有効な場合
         if (this.player.shieldActive) {
-            gameInstance.addCombatLog('攻撃をシールドで防いだ！');
-            this.player.shieldActive = false;
+            gameInstance.addCombatLog(`攻撃をシールドで防いだ！（残り${this.player.shieldDuration}ターン）`);
             return false; // ダメージを受けていない
         }
         

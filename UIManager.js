@@ -123,7 +123,12 @@ class UIManager {
                     if (abilityData.passive) {
                         unlockedAbilities.push(`${abilityData.name} (パッシブ)`);
                     } else {
-                        unlockedAbilities.push(`${abilityData.name} (${abilityData.key}キー): ${ability.uses}/${ability.maxUses}`);
+                        let statusInfo = `${abilityData.name} (${abilityData.key}キー): ${ability.uses}/${ability.maxUses}`;
+                        // シールドの場合、アクティブ時の残りターン数を表示
+                        if (key === 'shield' && player.shieldActive) {
+                            statusInfo += ` [アクティブ: ${player.shieldDuration}ターン]`;
+                        }
+                        unlockedAbilities.push(statusInfo);
                     }
                 }
             }

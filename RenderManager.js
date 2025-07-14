@@ -147,6 +147,13 @@ class RenderManager {
                     cell.textContent = '@';
                     cell.classList.add('player');
                     cell.classList.add('lit');
+                    
+                    // シールドが有効な場合の視覚的表示
+                    if (gameInstance.playerManager.player.shieldActive) {
+                        cell.classList.add('shielded');
+                        cell.style.boxShadow = '0 0 15px #00ffff';
+                        cell.style.animation = 'shieldPulse 1s infinite';
+                    }
                 } else {
                     const livingAlien = gameInstance.aliens.find(a => a.x === x && a.y === y && a.alive);
                     if (livingAlien && isVisible) {
