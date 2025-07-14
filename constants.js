@@ -194,10 +194,10 @@ const ABILITIES = {
     oxygenRecycler: {
         name: '酸素リサイクラー',
         key: null,
-        cost: 400,
-        minFloor: 6,
-        description: '酸素消費量を半分に削減',
-        category: 'advanced',
+        cost: 250, // 300から250に減額
+        minFloor: 2, // 3から2に早期化
+        description: '酸素消費量を大幅に削減',
+        category: 'intermediate',
         passive: true
     },
     autoMedic: {
@@ -429,7 +429,7 @@ const COMMUNICATION_MESSAGES = {
             id: "upgrade_schematic",
             sender: "技術者・マイク",
             content: "酸素効率化の回路図を送信する。技術部品があれば実装可能だ。",
-            trigger: "floor_4_reached",
+            trigger: "floor_3_reached",
             effect: "unlock_oxygen_upgrade",
             priority: "high",
             oneTime: true,

@@ -165,15 +165,23 @@ class PlayerManager {
     }
 
     processTurn(gameInstance) {
-        // 酸素消費（酸素リサイクラーで半減、通信効果でさらに削減）
-        let oxygenCost = 1 + Math.floor(gameInstance.floor / 5);
-        if (this.player.abilities.oxygenRecycler.unlocked) {
-            oxygenCost = Math.ceil(oxygenCost / 2);
+        // 酸素消費（より緩やかな増加に調整）
+        // 新しい計算式：デッキ1-4は1、デッキ5-10は1.3、デッキ11-16は1.6、デッキ17+は1.9
+        let oxygenCost = 1;
+        if (gameInstance.floor >= 5) {
+            oxygenCost = 1 + Math.floor((gameInstance.floor - 1) / 6) * 0.3;
         }
+        
+        // 酸素リサイクラーで大幅削減（65%削減に強化）
+        if (this.player.abilities.oxygenRecycler.unlocked) {
+            oxygenCost = Math.ceil(oxygenCost * 0.35);
+        }
+        
         // 通信システムの酸素効率化効果を適用
         if (gameInstance.communicationManager) {
             oxygenCost = Math.ceil(oxygenCost * gameInstance.communicationManager.getOxygenEfficiency());
         }
+        
         this.player.oxygen = Math.max(0, this.player.oxygen - oxygenCost);
         
         // 電力は自然減少しない（武器使用時のみ消費）

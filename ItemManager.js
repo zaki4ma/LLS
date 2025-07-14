@@ -29,10 +29,20 @@ class ItemManager {
         this.powerChargeStations = [];
         this.rangedWeaponContainers = [];
         
-        // 酸素補給
-        for (let i = 0; i < 2; i++) {
+        // 酸素補給（高層階で回復量と出現数を増加）
+        const oxygenContainerCount = gameInstance.floor >= 10 ? 3 : 2;
+        for (let i = 0; i < oxygenContainerCount; i++) {
+            // 高層階ほど回復量を増加（強化）
+            let baseOxygen = 35; // 30から35に増加
+            if (gameInstance.floor >= 10) {
+                baseOxygen = 55; // 50から55に増加
+            }
+            if (gameInstance.floor >= 15) {
+                baseOxygen = 75; // 70から75に増加
+            }
+            
             this.placeItem('oxygen-supply', { 
-                oxygen: 30 + Math.floor(Math.random() * 20),
+                oxygen: baseOxygen + Math.floor(Math.random() * 30),
                 taken: false
             }, gameInstance);
         }
