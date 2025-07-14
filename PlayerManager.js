@@ -164,10 +164,14 @@ class PlayerManager {
             const suffocationDamage = 5;
             this.player.hp -= suffocationDamage;
             gameInstance.addCombatLog(`酸素不足！ ${suffocationDamage}ダメージ！`);
+            gameInstance.soundManager.playDamage();
+            
+            // 酸素不足ダメージエフェクト（青色で表示）
+            gameInstance.renderManager.showFloatingText(this.player.x, this.player.y, `-${suffocationDamage}`, '#4444ff');
+            gameInstance.renderManager.showPlayerDamageFlash(gameInstance);
             
             if (this.player.hp <= 0) {
-                gameInstance.gameOver = true;
-                gameInstance.addCombatLog('酸素不足で力尽きました...');
+                this.triggerGameOver(gameInstance, '酸素不足で力尽きました...');
                 return;
             }
         }
@@ -332,24 +336,28 @@ class PlayerManager {
         gameInstance.renderManager.showPlayerDamageFlash(gameInstance);
         
         if (this.player.hp <= 0) {
-            gameInstance.gameOver = true;
-            gameInstance.addCombatLog('力尽きました...');
-            gameInstance.soundManager.playGameOver();
-            
-            // スコアデータを準備
-            const scoreData = {
-                score: gameInstance.currentScore,
-                floor: gameInstance.floor,
-                aliensKilled: gameInstance.aliensKilled,
-                totalGold: gameInstance.totalGoldCollected,
-                date: Date.now()
-            };
-            
-            // ゲームオーバーモーダルを表示
-            gameInstance.uiManager.showGameOverModal(scoreData);
+            this.triggerGameOver(gameInstance, '力尽きました...');
             return true; // ゲームオーバー
         }
         
         return false;
+    }
+
+    triggerGameOver(gameInstance, message) {
+        gameInstance.gameOver = true;
+        gameInstance.addCombatLog(message);
+        gameInstance.soundManager.playGameOver();
+        
+        // スコアデータを準備
+        const scoreData = {
+            score: gameInstance.currentScore,
+            floor: gameInstance.floor,
+            aliensKilled: gameInstance.aliensKilled,
+            totalGold: gameInstance.totalGoldCollected,
+            date: Date.now()
+        };
+        
+        // ゲームオーバーモーダルを表示
+        gameInstance.uiManager.showGameOverModal(scoreData);
     }
 }
