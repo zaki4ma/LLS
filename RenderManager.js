@@ -71,6 +71,21 @@ class RenderManager {
         return this.lightRadius;
     }
 
+    isInAttackRange(x, y, gameInstance) {
+        const playerX = gameInstance.playerManager.player.x;
+        const playerY = gameInstance.playerManager.player.y;
+        const weaponData = gameInstance.rangedWeaponManager.getWeaponData(gameInstance.selectedRangedWeapon);
+        
+        if (!weaponData) return false;
+        
+        // マンハッタン距離で射程をチェック
+        const distance = Math.abs(x - playerX) + Math.abs(y - playerY);
+        if (distance > weaponData.range || distance < 1) return false;
+        
+        // 射線チェック
+        return gameInstance.rangedWeaponManager.hasLineOfSight(playerX, playerY, x, y, gameInstance);
+    }
+
     hasLineOfSight(x1, y1, x2, y2, gameInstance) {
         const dx = Math.abs(x2 - x1);
         const dy = Math.abs(y2 - y1);
@@ -114,6 +129,14 @@ class RenderManager {
                 const isVisible = gameInstance.visibleCells[y][x];
                 const isExplored = gameInstance.exploredCells[y][x] !== null;
                 
+                // 遠距離攻撃の射程範囲を表示
+                if (gameInstance.isRangedAttackMode && gameInstance.selectedRangedWeapon) {
+                    const isInRange = this.isInAttackRange(x, y, gameInstance);
+                    if (isInRange) {
+                        cell.classList.add('attack-range');
+                    }
+                }
+                
                 if (!isVisible && !isExplored) {
                     cell.classList.add('hidden');
                     gridElement.appendChild(cell);
@@ -128,12 +151,21 @@ class RenderManager {
                     const livingAlien = gameInstance.aliens.find(a => a.x === x && a.y === y && a.alive);
                     if (livingAlien && isVisible) {
                         cell.textContent = livingAlien.typeData.symbol;
-                        cell.style.color = livingAlien.typeData.color;
-                        cell.style.textShadow = `0 0 10px ${livingAlien.typeData.color}`;
-                        cell.classList.add('alien');
                         
-                        // 敵タイプ別アニメーション
-                        this.addEnemyAnimation(cell, livingAlien.type);
+                        // スタン状態の視覚的表示
+                        if (livingAlien.stunned) {
+                            cell.style.color = '#ffff00';
+                            cell.style.textShadow = `0 0 15px #ffff00`;
+                            cell.classList.add('alien', 'stunned');
+                            cell.style.animation = 'stunPulse 0.5s infinite';
+                        } else {
+                            cell.style.color = livingAlien.typeData.color;
+                            cell.style.textShadow = `0 0 10px ${livingAlien.typeData.color}`;
+                            cell.classList.add('alien');
+                            
+                            // 敵タイプ別アニメーション
+                            this.addEnemyAnimation(cell, livingAlien.type);
+                        }
                     } else if (isVisible) {
                         this.renderCell(cell, cellType);
                     } else if (isExplored) {
@@ -193,6 +225,14 @@ class RenderManager {
             case 'weapon-supply':
                 cell.textContent = 'W';
                 cell.classList.add('weapon-supply');
+                break;
+            case 'power-charge-station':
+                cell.textContent = '⚡';
+                cell.classList.add('power-charge-station');
+                break;
+            case 'ranged-weapon-container':
+                cell.textContent = '🔫';
+                cell.classList.add('ranged-weapon-container');
                 break;
             case 'elevator':
                 cell.textContent = '>';

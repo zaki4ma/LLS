@@ -4,6 +4,7 @@ class PlayerManager {
             x: 0, y: 0, hp: 100, maxHp: 100, attack: 20, defense: 5,
             level: 1, exp: 0, expToNext: 100, gold: 0,
             oxygen: 100, maxOxygen: 100,
+            power: 100, maxPower: 100, // 電力リソース
             criticalChance: 0.15, // 15%のクリティカル確率
             criticalMultiplier: 2.0, // クリティカル時のダメージ倍率
             abilities: {
@@ -38,7 +39,7 @@ class PlayerManager {
             
             if (cellType === 'bulkhead') return;
             
-            const walkableCells = ['floor', 'alien', 'supply', 'oxygen-supply', 'medical-supply', 'weapon-supply', 'elevator'];
+            const walkableCells = ['floor', 'alien', 'supply', 'oxygen-supply', 'medical-supply', 'weapon-supply', 'power-charge-station', 'ranged-weapon-container', 'elevator'];
             if (!walkableCells.includes(cellType)) return;
             
             if (cellType === 'alien') {
@@ -68,6 +69,16 @@ class PlayerManager {
             if (cellType === 'weapon-supply') {
                 const weaponSupply = gameInstance.weaponSupplies.find(w => w.x === newX && w.y === newY && !w.taken);
                 if (weaponSupply) gameInstance.itemManager.collectWeaponSupply(weaponSupply, this.player, gameInstance);
+            }
+            
+            if (cellType === 'power-charge-station') {
+                const chargeStation = gameInstance.powerChargeStations.find(p => p.x === newX && p.y === newY && !p.taken);
+                if (chargeStation) gameInstance.itemManager.collectPowerChargeStation(chargeStation, this.player, gameInstance);
+            }
+            
+            if (cellType === 'ranged-weapon-container') {
+                const weaponContainer = gameInstance.rangedWeaponContainers.find(r => r.x === newX && r.y === newY && !r.taken);
+                if (weaponContainer) gameInstance.itemManager.collectRangedWeaponContainer(weaponContainer, this.player, gameInstance);
             }
             
             if (cellType === 'elevator') {
@@ -159,6 +170,8 @@ class PlayerManager {
             oxygenCost = Math.ceil(oxygenCost / 2);
         }
         this.player.oxygen = Math.max(0, this.player.oxygen - oxygenCost);
+        
+        // 電力は自然減少しない（武器使用時のみ消費）
         
         if (this.player.oxygen <= 0) {
             const suffocationDamage = 5;

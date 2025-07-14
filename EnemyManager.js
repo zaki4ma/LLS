@@ -65,6 +65,19 @@ class EnemyManager {
         for (const alien of this.aliens) {
             if (!alien.alive) continue;
             
+            // スタン状態をチェック
+            if (alien.stunned) {
+                // スタン持続時間を減らす
+                alien.stunDuration--;
+                if (alien.stunDuration <= 0) {
+                    alien.stunned = false;
+                    gameInstance.addCombatLog(`${alien.typeData.name}の麻痺が解けた`);
+                } else {
+                    gameInstance.addCombatLog(`${alien.typeData.name}は麻痺している`);
+                }
+                continue; // スタン中は行動しない
+            }
+            
             // プレイヤーとの距離を計算
             const distance = Math.abs(alien.x - gameInstance.playerManager.player.x) + 
                            Math.abs(alien.y - gameInstance.playerManager.player.y);

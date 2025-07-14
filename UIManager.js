@@ -33,6 +33,8 @@ class UIManager {
         document.getElementById('floor').textContent = gameInstance.floor;
         document.getElementById('player-oxygen').textContent = Math.max(0, player.oxygen);
         document.getElementById('player-maxoxygen').textContent = player.maxOxygen;
+        document.getElementById('player-power').textContent = Math.max(0, player.power);
+        document.getElementById('player-maxpower').textContent = player.maxPower;
         document.getElementById('turn-count').textContent = gameInstance.turnCount;
         
         const expPercentage = (player.exp / player.expToNext) * 100;
@@ -71,6 +73,22 @@ class UIManager {
             }
         }
         
+        // 電力バーの更新
+        const powerPercentage = (player.power / player.maxPower) * 100;
+        const powerBarFill = document.getElementById('power-bar-fill');
+        if (powerBarFill) {
+            powerBarFill.style.width = powerPercentage + '%';
+            powerBarFill.classList.remove('warning', 'critical');
+            
+            if (powerPercentage <= 15) {
+                powerBarFill.classList.add('critical');
+            } else if (powerPercentage <= 30) {
+                powerBarFill.classList.add('warning');
+            } else {
+                powerBarFill.style.background = 'linear-gradient(90deg, #ffaa00 0%, #ffcc00 50%, #ffaa00 100%)';
+            }
+        }
+        
         // スコア更新
         gameInstance.currentScore = gameInstance.aliensKilled * 100 + player.gold + gameInstance.floor * 50;
         document.getElementById('current-score').textContent = gameInstance.currentScore.toLocaleString();
@@ -78,6 +96,7 @@ class UIManager {
         
         this.updateFloorDisplay();
         this.updateAbilitiesDisplay(gameInstance);
+        this.updateRangedWeaponsDisplay(gameInstance);
     }
 
     updateFloorDisplay() {
@@ -178,6 +197,40 @@ class UIManager {
         
         rankingHTML += '</div>';
         this.showModal('ハイスコアランキング', rankingHTML);
+    }
+
+    updateRangedWeaponsDisplay(gameInstance) {
+        const weaponsDisplay = document.getElementById('ranged-weapons-inventory');
+        if (!weaponsDisplay) return;
+        
+        const inventory = gameInstance.rangedWeaponManager.getWeaponInventory();
+        let weaponsHTML = '';
+        let hasWeapons = false;
+        
+        Object.entries(inventory).forEach(([weaponId, count], index) => {
+            if (count > 0) {
+                hasWeapons = true;
+                const weaponData = gameInstance.rangedWeaponManager.getWeaponData(weaponId);
+                if (weaponData) {
+                    const keyNumber = index + 1;
+                    weaponsHTML += `
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px;">
+                            <span style="color: #ff6600;">[${keyNumber}] ${weaponData.icon} ${weaponData.name}</span>
+                            <span style="color: #ffaa00; font-weight: bold;">×${count}</span>
+                        </div>
+                        <div style="color: #888; font-size: 11px; margin-bottom: 5px;">
+                            射程: ${weaponData.range} / 威力: ${weaponData.damage} / 電力: ${weaponData.powerCost}
+                        </div>
+                    `;
+                }
+            }
+        });
+        
+        if (!hasWeapons) {
+            weaponsHTML = '<div style="color: #888;">武器なし</div>';
+        }
+        
+        weaponsDisplay.innerHTML = weaponsHTML;
     }
 
     showUpgradeGuide() {

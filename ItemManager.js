@@ -4,6 +4,8 @@ class ItemManager {
         this.oxygenSupplies = [];
         this.medicalSupplies = [];
         this.weaponSupplies = [];
+        this.powerChargeStations = [];
+        this.rangedWeaponContainers = [];
     }
 
     placeSupplies(gameInstance) {
@@ -24,6 +26,8 @@ class ItemManager {
         this.oxygenSupplies = [];
         this.medicalSupplies = [];
         this.weaponSupplies = [];
+        this.powerChargeStations = [];
+        this.rangedWeaponContainers = [];
         
         // 酸素補給
         for (let i = 0; i < 2; i++) {
@@ -59,9 +63,23 @@ class ItemManager {
             }, gameInstance);
         }
         
+        // 電力チャージステーション（各デッキに1-2個）
+        const chargeStationCount = 1 + Math.floor(Math.random() * 2);
+        for (let i = 0; i < chargeStationCount; i++) {
+            this.placeItem('power-charge-station', {
+                powerRestore: 40 + Math.floor(Math.random() * 30),
+                taken: false
+            }, gameInstance);
+        }
+        
+        // 遠距離武器コンテナ（確率的に出現）
+        this.placeRangedWeaponContainers(gameInstance);
+        
         gameInstance.oxygenSupplies = this.oxygenSupplies;
         gameInstance.medicalSupplies = this.medicalSupplies;
         gameInstance.weaponSupplies = this.weaponSupplies;
+        gameInstance.powerChargeStations = this.powerChargeStations;
+        gameInstance.rangedWeaponContainers = this.rangedWeaponContainers;
     }
 
     placeItem(type, item, gameInstance) {
@@ -80,6 +98,8 @@ class ItemManager {
                 else if (type === 'oxygen-supply') this.oxygenSupplies.push(item);
                 else if (type === 'medical-supply') this.medicalSupplies.push(item);
                 else if (type === 'weapon-supply') this.weaponSupplies.push(item);
+                else if (type === 'power-charge-station') this.powerChargeStations.push(item);
+                else if (type === 'ranged-weapon-container') this.rangedWeaponContainers.push(item);
                 
                 gameInstance.grid[y][x] = type;
                 placed = true;
@@ -137,5 +157,68 @@ class ItemManager {
         // 武器強化エフェクト
         gameInstance.renderManager.showFloatingText(weaponSupply.x, weaponSupply.y, `ATK+${weaponSupply.attackBonus}`, '#ff8844');
         gameInstance.renderManager.showFloatingText(weaponSupply.x, weaponSupply.y, `DEF+${weaponSupply.defenseBonus}`, '#8844ff');
+    }
+
+    placeRangedWeaponContainers(gameInstance) {
+        // デッキに応じた武器出現確率
+        let weaponChances = {
+            stun_gun: 0.3,    // 30% - 最も一般的
+            plasma_cutter: 0.15, // 15% - 希少
+            emergency_laser: 0.05  // 5% - 超希少
+        };
+        
+        // 高層デッキでは出現率を上げる
+        if (gameInstance.floor >= 5) {
+            weaponChances.stun_gun = 0.4;
+            weaponChances.plasma_cutter = 0.25;
+        }
+        if (gameInstance.floor >= 10) {
+            weaponChances.emergency_laser = 0.1;
+        }
+        
+        // 各武器タイプをチェック
+        Object.entries(weaponChances).forEach(([weaponId, chance]) => {
+            if (Math.random() < chance) {
+                const weaponData = RANGED_WEAPONS[weaponId.toUpperCase()];
+                const quantity = 1 + Math.floor(Math.random() * 2); // 1-2個
+                
+                this.placeItem('ranged-weapon-container', {
+                    weaponId: weaponId,
+                    weaponName: weaponData.name,
+                    weaponIcon: weaponData.icon,
+                    quantity: quantity,
+                    taken: false
+                }, gameInstance);
+            }
+        });
+    }
+
+    collectPowerChargeStation(chargeStation, player, gameInstance) {
+        chargeStation.taken = true;
+        const oldPower = player.power;
+        player.power = Math.min(player.maxPower, player.power + chargeStation.powerRestore);
+        const actualPowerRestore = player.power - oldPower;
+        gameInstance.addCombatLog(`電力チャージステーションを使用！ 電力+${actualPowerRestore}`);
+        gameInstance.soundManager.playCollect('item');
+        gameInstance.grid[chargeStation.y][chargeStation.x] = 'floor';
+        
+        // 電力回復エフェクト
+        gameInstance.renderManager.showFloatingText(chargeStation.x, chargeStation.y, `+${actualPowerRestore} ⚡`, '#ffcc00');
+    }
+
+    collectRangedWeaponContainer(weaponContainer, player, gameInstance) {
+        weaponContainer.taken = true;
+        
+        // 遠距離武器をインベントリに追加
+        const success = gameInstance.rangedWeaponManager.addWeapon(weaponContainer.weaponId, weaponContainer.quantity);
+        
+        if (success) {
+            gameInstance.addCombatLog(`${weaponContainer.weaponIcon} ${weaponContainer.weaponName} ×${weaponContainer.quantity} を入手！`);
+            gameInstance.soundManager.playCollect('weapon');
+            gameInstance.grid[weaponContainer.y][weaponContainer.x] = 'floor';
+            
+            // 武器入手エフェクト
+            gameInstance.renderManager.showFloatingText(weaponContainer.x, weaponContainer.y, `${weaponContainer.weaponIcon}×${weaponContainer.quantity}`, '#ff6600');
+        }
     }
 }

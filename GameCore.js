@@ -16,6 +16,8 @@ class RoguelikeGame {
         this.elevatorPlaced = false;
         this.inUpgradeMenu = false;
         this.keyPressed = {};
+        this.selectedRangedWeapon = null;
+        this.isRangedAttackMode = false;
         
         // スコア統計
         this.aliensKilled = 0;
@@ -36,6 +38,7 @@ class RoguelikeGame {
         this.renderManager = new RenderManager(this.gridSize);
         this.uiManager = new UIManager();
         this.upgradeManager = new UpgradeManager();
+        this.rangedWeaponManager = new RangedWeaponManager();
         
         this.uiManager.init(this);
         this.initSound();
@@ -101,9 +104,18 @@ class RoguelikeGame {
             if (this.gameOver || this.inUpgradeMenu) return;
             
             // ゲーム関連のキーでブラウザのデフォルト動作を無効化
-            const gameKeys = [' ', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'w', 'W', 'a', 'A', 's', 'S', 'd', 'D', 't', 'T', 'e', 'E', 'q', 'Q', 'h', 'H'];
+            const gameKeys = [' ', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'w', 'W', 'a', 'A', 's', 'S', 'd', 'D', 't', 'T', 'e', 'E', 'q', 'Q', 'h', 'H', '1', '2', '3', 'r', 'R'];
             if (gameKeys.includes(e.key)) {
                 e.preventDefault();
+            }
+            
+            // ESCキーでターゲットモードを終了
+            if (e.key === 'Escape' && this.isRangedAttackMode) {
+                this.isRangedAttackMode = false;
+                this.addCombatLog('ターゲットモードを終了しました');
+                this.updateGameStatus();
+                this.renderManager.render(this);
+                return;
             }
             
             let dx = 0, dy = 0;
@@ -158,12 +170,39 @@ class RoguelikeGame {
                         this.processTurn();
                     }
                     return;
+                case '1':
+                case '2':
+                case '3':
+                    this.selectRangedWeapon(parseInt(e.key) - 1);
+                    return;
+                case 'r':
+                case 'R':
+                    this.toggleRangedAttackMode();
+                    return;
             }
             
             if (dx !== 0 || dy !== 0) {
                 if (this.playerManager.movePlayer(dx, dy, this)) {
                     this.processTurn();
                 }
+            }
+        });
+        
+        // マウスクリック処理（遠距離武器のターゲット指定）
+        document.addEventListener('click', (e) => {
+            if (this.gameOver || this.inUpgradeMenu || !this.isRangedAttackMode) return;
+            
+            const gameGrid = document.getElementById('game-grid');
+            if (!gameGrid) return;
+            
+            const rect = gameGrid.getBoundingClientRect();
+            const cellSize = rect.width / this.gridSize;
+            
+            const x = Math.floor((e.clientX - rect.left) / cellSize);
+            const y = Math.floor((e.clientY - rect.top) / cellSize);
+            
+            if (x >= 0 && x < this.gridSize && y >= 0 && y < this.gridSize) {
+                this.handleRangedAttack(x, y);
             }
         });
     }
@@ -194,5 +233,101 @@ class RoguelikeGame {
 
     showUpgradeGuide() {
         this.uiManager.showUpgradeGuide();
+    }
+
+    selectRangedWeapon(weaponIndex) {
+        const weaponIds = Object.keys(this.rangedWeaponManager.weaponInventory);
+        const selectedWeaponId = weaponIds[weaponIndex];
+        
+        if (!selectedWeaponId) {
+            this.addCombatLog('その武器スロットは空です');
+            return;
+        }
+        
+        const inventory = this.rangedWeaponManager.getWeaponInventory();
+        if (inventory[selectedWeaponId] <= 0) {
+            this.addCombatLog('その武器の残弾がありません');
+            return;
+        }
+        
+        const weaponData = this.rangedWeaponManager.getWeaponData(selectedWeaponId);
+        if (!weaponData) {
+            this.addCombatLog('無効な武器です');
+            return;
+        }
+        
+        this.selectedRangedWeapon = selectedWeaponId;
+        this.addCombatLog(`${weaponData.icon} ${weaponData.name} を選択しました`);
+        
+        // 自動的にターゲットモードに入る
+        this.isRangedAttackMode = true;
+        this.addCombatLog('ターゲットモードON - 敵をクリックして攻撃');
+        this.updateGameStatus();
+        
+        // 射程範囲を表示するため画面を更新
+        this.renderManager.render(this);
+    }
+
+    toggleRangedAttackMode() {
+        if (!this.selectedRangedWeapon) {
+            this.addCombatLog('まず遠距離武器を選択してください（1-3キー）');
+            return;
+        }
+        
+        this.isRangedAttackMode = !this.isRangedAttackMode;
+        
+        if (this.isRangedAttackMode) {
+            this.addCombatLog('ターゲットモードON - 敵をクリックして攻撃');
+        } else {
+            this.addCombatLog('ターゲットモードOFF');
+        }
+        
+        this.updateGameStatus();
+        
+        // 射程範囲の表示を更新
+        this.renderManager.render(this);
+    }
+    
+    updateGameStatus() {
+        const statusElement = document.getElementById('game-status');
+        if (!statusElement) return;
+        
+        if (this.isRangedAttackMode && this.selectedRangedWeapon) {
+            const weaponData = this.rangedWeaponManager.getWeaponData(this.selectedRangedWeapon);
+            statusElement.textContent = `🎯 ${weaponData.icon} ${weaponData.name} - 敵をクリック`;
+        } else {
+            statusElement.textContent = '探索中...';
+        }
+    }
+    
+    handleRangedAttack(targetX, targetY) {
+        if (!this.selectedRangedWeapon) {
+            this.addCombatLog('武器が選択されていません');
+            return;
+        }
+        
+        const result = this.rangedWeaponManager.useWeapon(this.selectedRangedWeapon, targetX, targetY, this);
+        
+        if (result.success) {
+            this.addCombatLog(`${result.weaponUsed}で攻撃！`);
+            
+            // 攻撃成功後の処理
+            result.results.forEach(res => {
+                if (res.killed) {
+                    this.soundManager.playAttack();
+                } else if (res.critical) {
+                    this.soundManager.playCriticalHit();
+                }
+            });
+            
+            // ターゲットモードを終了
+            this.isRangedAttackMode = false;
+            this.updateGameStatus();
+            
+            // ターン処理を実行
+            this.processTurn();
+        } else {
+            this.addCombatLog(`攻撃失敗: ${result.message}`);
+        }
     }
 }

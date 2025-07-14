@@ -210,3 +210,51 @@ const ABILITIES = {
         passive: true
     }
 };
+
+// 遠距離武器定義
+const RANGED_WEAPONS = {
+    PLASMA_CUTTER: {
+        id: "plasma_cutter",
+        name: "プラズマカッター",
+        description: "工業用プラズマ切断装置。高威力だが電力消費が激しい",
+        type: "ranged_consumable",
+        range: 3,
+        damage: 40,
+        powerCost: 25,
+        usesPerGame: 8,
+        rarity: "uncommon",
+        foundIn: ["workshop", "engineering_bay"],
+        icon: "🔥",
+        soundEffect: "plasma_fire"
+    },
+    STUN_GUN: {
+        id: "stun_gun",
+        name: "スタンガン",
+        description: "保安用装備。敵を麻痺させるが威力は控えめ",
+        type: "ranged_consumable",
+        range: 2,
+        damage: 15,
+        powerCost: 15,
+        usesPerGame: 12,
+        specialEffect: "stun",
+        rarity: "common",
+        foundIn: ["security_office", "armory"],
+        icon: "⚡",
+        soundEffect: "electric_zap"
+    },
+    EMERGENCY_LASER: {
+        id: "emergency_laser",
+        name: "緊急用レーザー",
+        description: "非常用信号装置を武器転用。貫通攻撃可能",
+        type: "ranged_consumable",
+        range: 3,
+        damage: 30,
+        powerCost: 20,
+        usesPerGame: 3,
+        specialEffect: "penetrate",
+        rarity: "rare",
+        foundIn: ["bridge", "emergency_locker"],
+        icon: "🔴",
+        soundEffect: "laser_beam"
+    }
+};
