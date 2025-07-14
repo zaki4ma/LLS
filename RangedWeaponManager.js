@@ -128,7 +128,13 @@ class RangedWeaponManager {
         if (result.success) {
             // リソース消費
             this.weaponInventory[weaponId]--;
-            gameInstance.playerManager.player.power -= weapon.powerCost;
+            
+            // 通信システムの電力効率化効果を適用
+            let actualPowerCost = weapon.powerCost;
+            if (gameInstance.communicationManager) {
+                actualPowerCost = Math.ceil(actualPowerCost * gameInstance.communicationManager.getPowerEfficiency());
+            }
+            gameInstance.playerManager.player.power -= actualPowerCost;
         }
         
         return result;

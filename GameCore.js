@@ -39,10 +39,14 @@ class RoguelikeGame {
         this.uiManager = new UIManager();
         this.upgradeManager = new UpgradeManager();
         this.rangedWeaponManager = new RangedWeaponManager();
+        this.communicationManager = new CommunicationManager();
         
         this.uiManager.init(this);
         this.initSound();
         this.init();
+        
+        // 通信システムをグローバルに設定
+        window.communicationManager = this.communicationManager;
     }
 
     // 初期化とサウンド関連のメソッド
@@ -92,6 +96,7 @@ class RoguelikeGame {
         this.levelGenerator.generateLevel(this);
         this.renderManager.render(this);
         this.setupEventListeners();
+        this.setupCommunicationEventListeners();
         this.uiManager.updateStatus(this);
     }
 
@@ -218,6 +223,10 @@ class RoguelikeGame {
         // エイリアンの行動
         this.enemyManager.moveAliens(this);
         
+        // 通信システムのチェック
+        this.communicationManager.checkTriggers(this);
+        this.communicationManager.processTurnEffects();
+        
         this.renderManager.render(this);
         this.uiManager.updateStatus(this);
     }
@@ -297,6 +306,16 @@ class RoguelikeGame {
             statusElement.textContent = `🎯 ${weaponData.icon} ${weaponData.name} - 敵をクリック`;
         } else {
             statusElement.textContent = '探索中...';
+        }
+    }
+    
+    setupCommunicationEventListeners() {
+        // 通信ログボタンのイベントリスナー
+        const commLogBtn = document.getElementById('comm-log-btn');
+        if (commLogBtn) {
+            commLogBtn.addEventListener('click', () => {
+                this.communicationManager.showCommunicationLog();
+            });
         }
     }
     

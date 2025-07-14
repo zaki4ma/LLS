@@ -2,6 +2,7 @@ class RenderManager {
     constructor(gridSize) {
         this.gridSize = gridSize;
         this.lightRadius = 4;
+        this.floatingTextQueue = new Map(); // 位置別のエフェクトキュー
     }
 
     calculateVisibility(gameInstance) {
@@ -16,6 +17,22 @@ class RenderManager {
         const facing = gameInstance.playerManager.player.facing;
         
         gameInstance.visibleCells[playerY][playerX] = true;
+        
+        // 通信システムの全フロア照明効果をチェック
+        if (gameInstance.communicationManager && gameInstance.communicationManager.hasFullLighting()) {
+            // 全フロア照明時は全てのセルを可視化
+            for (let y = 0; y < this.gridSize; y++) {
+                for (let x = 0; x < this.gridSize; x++) {
+                    gameInstance.visibleCells[y][x] = true;
+                    if (gameInstance.grid[y][x] !== null) {
+                        gameInstance.exploredCells[y][x] = {
+                            terrain: gameInstance.grid[y][x]
+                        };
+                    }
+                }
+            }
+            return;
+        }
         
         for (let y = Math.max(0, playerY - this.lightRadius); y <= Math.min(this.gridSize - 1, playerY + this.lightRadius); y++) {
             for (let x = Math.max(0, playerX - this.lightRadius); x <= Math.min(this.gridSize - 1, playerX + this.lightRadius); x++) {
@@ -252,37 +269,204 @@ class RenderManager {
         const gameGrid = document.getElementById('game-grid');
         if (!gameGrid) return;
         
+        // 位置のキーを生成
+        const positionKey = `${x},${y}`;
+        
+        // この位置のエフェクトキューを取得または作成
+        if (!this.floatingTextQueue.has(positionKey)) {
+            this.floatingTextQueue.set(positionKey, []);
+        }
+        
+        const queue = this.floatingTextQueue.get(positionKey);
+        const effectIndex = queue.length;
+        
+        // エフェクトの種類を判定
+        const effectType = this.getEffectType(text, color);
+        
+        // エフェクトデータを作成
+        const effectData = {
+            text: text,
+            color: color,
+            index: effectIndex,
+            timestamp: Date.now(),
+            type: effectType
+        };
+        
+        queue.push(effectData);
+        
+        // エフェクトの種類に応じて時間差を調整
+        const delay = this.getEffectDelay(effectType, effectIndex);
+        
+        setTimeout(() => {
+            this.displayFloatingText(x, y, effectData, delay);
+        }, delay);
+    }
+    
+    getEffectType(text, color) {
+        // テキストと色からエフェクトの種類を判定
+        if (text.includes('CRIT') || text.startsWith('-')) {
+            return 'damage';
+        } else if (text.includes('HP') || text.includes('O₂') || text.includes('⚡')) {
+            return 'healing';
+        } else if (text.includes('EXP')) {
+            return 'exp';
+        } else if (text.includes('Gold') || text.includes('G')) {
+            return 'gold';
+        } else if (text.includes('ATK') || text.includes('DEF')) {
+            return 'upgrade';
+        }
+        return 'other';
+    }
+    
+    getEffectDelay(effectType, effectIndex) {
+        // エフェクトの種類に応じて遅延時間を調整
+        const baseDelay = effectIndex * 100;
+        
+        switch (effectType) {
+            case 'damage':
+                return baseDelay; // ダメージは即座に表示
+            case 'healing':
+                return baseDelay + 200; // 回復は少し遅れて表示
+            case 'exp':
+                return baseDelay + 400; // 経験値はさらに遅れて表示
+            case 'gold':
+                return baseDelay + 600; // ゴールドは最後に表示
+            case 'upgrade':
+                return baseDelay + 300; // アップグレードは中間
+            default:
+                return baseDelay + 100;
+        }
+    }
+    
+    displayFloatingText(x, y, effectData, delay) {
+        const gameGrid = document.getElementById('game-grid');
+        if (!gameGrid) return;
+        
+        const positionKey = `${x},${y}`;
+        const queue = this.floatingTextQueue.get(positionKey);
+        if (!queue) return;
+        
         // グリッドの位置を取得
         const gridRect = gameGrid.getBoundingClientRect();
         const cellSize = gridRect.width / this.gridSize;
         
         const floatingDiv = document.createElement('div');
-        floatingDiv.textContent = text;
+        floatingDiv.textContent = effectData.text;
+        floatingDiv.className = 'floating-text';
+        
+        // 複数のエフェクトが重ならないよう位置を調整
+        const baseX = gridRect.left + x * cellSize + cellSize / 2;
+        const baseY = gridRect.top + y * cellSize + cellSize / 2;
+        
+        // エフェクトの種類に応じて位置をずらす
+        let offsetX = 0;
+        let offsetY = 0;
+        
+        if (effectData.index > 0) {
+            // エフェクトの種類に応じて位置をずらす
+            switch (effectData.type) {
+                case 'damage':
+                    // ダメージは中央から少し上
+                    offsetY = -20 - (effectData.index * 15);
+                    offsetX = (effectData.index % 2 === 0 ? 1 : -1) * (effectData.index * 8);
+                    break;
+                case 'healing':
+                    // 回復は右上方向
+                    offsetX = 20 + (effectData.index * 10);
+                    offsetY = -15 - (effectData.index * 10);
+                    break;
+                case 'exp':
+                    // 経験値は左上方向
+                    offsetX = -20 - (effectData.index * 10);
+                    offsetY = -15 - (effectData.index * 10);
+                    break;
+                case 'gold':
+                    // ゴールドは右下方向
+                    offsetX = 20 + (effectData.index * 10);
+                    offsetY = 15 + (effectData.index * 10);
+                    break;
+                case 'upgrade':
+                    // アップグレードは左下方向
+                    offsetX = -20 - (effectData.index * 10);
+                    offsetY = 15 + (effectData.index * 10);
+                    break;
+                default:
+                    // その他は螺旋状に配置
+                    const angle = (effectData.index * Math.PI * 0.8) + (Math.PI / 4);
+                    const radius = 15 + (effectData.index * 8);
+                    offsetX = Math.cos(angle) * radius;
+                    offsetY = Math.sin(angle) * radius;
+            }
+        }
+        
+        // エフェクトの種類に応じてアニメーションを調整
+        let animationName = 'damageFloat';
+        let fontSize = '16px';
+        
+        switch (effectData.type) {
+            case 'damage':
+                animationName = 'damageFloat';
+                fontSize = '18px';
+                break;
+            case 'healing':
+                animationName = 'healFloat';
+                fontSize = '15px';
+                break;
+            case 'exp':
+                animationName = 'expFloat';
+                fontSize = '14px';
+                break;
+            case 'gold':
+                animationName = 'goldFloat';
+                fontSize = '14px';
+                break;
+            case 'upgrade':
+                animationName = 'upgradeFloat';
+                fontSize = '13px';
+                break;
+        }
+        
         floatingDiv.style.cssText = `
             position: fixed;
-            color: ${color};
+            color: ${effectData.color};
             font-weight: bold;
-            font-size: 16px;
+            font-size: ${fontSize};
             pointer-events: none;
-            z-index: 1000;
-            left: ${gridRect.left + x * cellSize + cellSize / 2}px;
-            top: ${gridRect.top + y * cellSize + cellSize / 2}px;
-            animation: damageFloat 1s ease-out forwards;
+            z-index: ${1000 + effectData.index};
+            left: ${baseX + offsetX}px;
+            top: ${baseY + offsetY}px;
+            animation: ${animationName} 1s ease-out forwards;
             text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
             transform: translateX(-50%) translateY(-50%);
+            opacity: 0;
+            animation-delay: 0s;
         `;
         
         document.body.appendChild(floatingDiv);
         
-        // 複数のエフェクトが重ならないよう、少しずらす
-        const existingEffects = document.querySelectorAll('div[style*="damageFloat"]');
-        if (existingEffects.length > 1) {
-            floatingDiv.style.left = (gridRect.left + x * cellSize + cellSize / 2 + (existingEffects.length * 10)) + 'px';
-        }
+        // アニメーション開始
+        setTimeout(() => {
+            floatingDiv.style.opacity = '1';
+        }, 10);
         
+        // 1秒後にエフェクトを削除
         setTimeout(() => {
             if (floatingDiv.parentNode) {
                 floatingDiv.parentNode.removeChild(floatingDiv);
+            }
+            
+            // キューからエフェクトを削除
+            const currentQueue = this.floatingTextQueue.get(positionKey);
+            if (currentQueue) {
+                const index = currentQueue.findIndex(effect => effect.timestamp === effectData.timestamp);
+                if (index !== -1) {
+                    currentQueue.splice(index, 1);
+                }
+                
+                // キューが空になったら削除
+                if (currentQueue.length === 0) {
+                    this.floatingTextQueue.delete(positionKey);
+                }
             }
         }, 1000);
     }

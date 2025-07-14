@@ -258,3 +258,249 @@ const RANGED_WEAPONS = {
         soundEffect: "laser_beam"
     }
 };
+
+// 通信システムのメッセージデータベース
+const COMMUNICATION_MESSAGES = {
+    // 機能的通信（ゲームプレイ支援）
+    functional: [
+        {
+            id: "elevator_location",
+            sender: "監視室・ケビン",
+            content: "カメラで確認した。次のフロアの東側にエレベーターがある。",
+            trigger: "floor_3_reached",
+            effect: "hint_elevator_location",
+            priority: "high",
+            oneTime: true,
+            displayDuration: 6000
+        },
+        {
+            id: "danger_warning",
+            sender: "セキュリティ・アレックス",
+            content: "警告！現在のフロアにライトキラー型を複数確認。迂回を推奨。",
+            trigger: "floor_5_reached",
+            effect: "warn_danger_area",
+            priority: "high",
+            oneTime: true,
+            displayDuration: 6000
+        },
+        {
+            id: "item_location",
+            sender: "医療班・サラ",
+            content: "医務室のブルーロッカーに酸素ボンベを確保している。",
+            trigger: "medical_bay_discovered",
+            effect: "hint_oxygen_supply",
+            priority: "medium",
+            oneTime: true,
+            displayDuration: 5000
+        },
+        {
+            id: "system_assistance",
+            sender: "エンジニア・トム",
+            content: "照明システムを一時復旧する。3分間だけ全フロア照明が点灯する。",
+            trigger: "power_system_accessed",
+            effect: "temporary_full_lighting",
+            priority: "high",
+            oneTime: true,
+            displayDuration: 6000
+        },
+        {
+            id: "weapon_cache",
+            sender: "保安班・ジャック",
+            content: "7階の工作室に武器を隠してある。緊急時に使用してくれ。",
+            trigger: "floor_7_reached",
+            effect: "hint_weapon_cache",
+            priority: "medium",
+            oneTime: true,
+            displayDuration: 5000
+        }
+    ],
+    
+    // ストーリー通信（世界観構築）
+    story: [
+        {
+            id: "incident_revelation",
+            sender: "研究主任・ドクター",
+            content: "実験体X-47が収容違反を起こした。これは我々の責任だ...",
+            trigger: "floor_6_reached",
+            effect: "reveal_story_fragment",
+            priority: "medium",
+            oneTime: true,
+            displayDuration: 6000
+        },
+        {
+            id: "earth_contact_lost",
+            sender: "通信士・リナ",
+            content: "地球本部への通信が72時間途絶。救助は期待できない。",
+            trigger: "floor_10_reached",
+            effect: "reveal_isolation",
+            priority: "medium",
+            oneTime: true,
+            displayDuration: 6000
+        },
+        {
+            id: "command_structure_collapse",
+            sender: "副船長・マーカス",
+            content: "船長は最初の犠牲者だった。指揮系統は既に崩壊している。",
+            trigger: "floor_12_reached",
+            effect: "reveal_command_loss",
+            priority: "medium",
+            oneTime: true,
+            displayDuration: 6000
+        },
+        {
+            id: "survivor_count",
+            sender: "医療班・サラ",
+            content: "生存者確認：現在7名。うち3名が重傷、2名が行方不明。",
+            trigger: "floor_15_reached",
+            effect: "reveal_survivor_status",
+            priority: "low",
+            oneTime: true,
+            displayDuration: 5000
+        },
+        {
+            id: "experiment_origin",
+            sender: "研究員・ナオミ",
+            content: "これらの生物は深宇宙で発見されたものだ。制御不能になった...",
+            trigger: "floor_8_reached",
+            effect: "reveal_experiment_origin",
+            priority: "medium",
+            oneTime: true,
+            displayDuration: 6000
+        }
+    ],
+    
+    // 感情的通信（人間ドラマ）
+    emotional: [
+        {
+            id: "rescue_plea",
+            sender: "クルー・ジェン",
+            content: "9階で負傷...動けない。誰か...助けて...",
+            trigger: "floor_8_reached",
+            effect: "create_rescue_mission",
+            priority: "medium",
+            oneTime: true,
+            displayDuration: 7000
+        },
+        {
+            id: "family_message",
+            sender: "パイロット・デイブ",
+            content: "もし君が脱出できたら...妻のエミリーに愛していると伝えてくれ。",
+            trigger: "floor_16_reached",
+            effect: "emotional_weight",
+            priority: "low",
+            oneTime: true,
+            displayDuration: 6000
+        },
+        {
+            id: "hope_message",
+            sender: "エンジニア・トム",
+            content: "君がいれば必ず脱出できる。一緒に生き延びよう！",
+            trigger: "aliens_killed_20",
+            effect: "morale_boost",
+            priority: "low",
+            oneTime: true,
+            displayDuration: 5000
+        },
+        {
+            id: "desperation",
+            sender: "不明",
+            content: "もう限界だ...誰かいるなら...応答して...",
+            trigger: "floor_14_reached",
+            effect: "create_tension",
+            priority: "low",
+            oneTime: true,
+            displayDuration: 5000
+        },
+        {
+            id: "last_goodbye",
+            sender: "医療班・サラ",
+            content: "酸素が...残り少ない。最後まで戦ってくれ。みんなの分まで...",
+            trigger: "floor_18_reached",
+            effect: "final_determination",
+            priority: "medium",
+            oneTime: true,
+            displayDuration: 7000
+        }
+    ],
+    
+    // 技術通信（アップグレード・システム）
+    technical: [
+        {
+            id: "upgrade_schematic",
+            sender: "技術者・マイク",
+            content: "酸素効率化の回路図を送信する。技術部品があれば実装可能だ。",
+            trigger: "floor_4_reached",
+            effect: "unlock_oxygen_upgrade",
+            priority: "high",
+            oneTime: true,
+            displayDuration: 6000
+        },
+        {
+            id: "weapon_access",
+            sender: "保安責任者・ジャック",
+            content: "工作室のプラズマカッター、認証コード：Alpha-2847",
+            trigger: "workshop_discovered",
+            effect: "unlock_plasma_cutter",
+            priority: "medium",
+            oneTime: true,
+            displayDuration: 6000
+        },
+        {
+            id: "shield_boost",
+            sender: "エンジニア・トム",
+            content: "シールドジェネレーターを改良した。持続時間が延長される。",
+            trigger: "floor_11_reached",
+            effect: "upgrade_shield_duration",
+            priority: "high",
+            oneTime: true,
+            displayDuration: 6000
+        },
+        {
+            id: "power_efficiency",
+            sender: "技術者・マイク",
+            content: "電力効率化プログラムを送信。バッテリー消費が50%削減される。",
+            trigger: "floor_13_reached",
+            effect: "improve_power_efficiency",
+            priority: "high",
+            oneTime: true,
+            displayDuration: 6000
+        }
+    ],
+    
+    // ミスリード通信（疑心暗鬼）
+    mislead: [
+        {
+            id: "suspicious_captain",
+            sender: "船長？",
+            content: "こちら船長...状況は...制御下にある...心配...ない...",
+            trigger: "floor_9_reached",
+            effect: "create_suspicion",
+            priority: "medium",
+            oneTime: true,
+            displayDuration: 6000,
+            suspicious: true
+        },
+        {
+            id: "fragmented_help",
+            sender: "不明",
+            content: "た...すけ...て...17か...い...zzz...ノイズ...",
+            trigger: "floor_17_reached",
+            effect: "create_uncertainty",
+            priority: "low",
+            oneTime: true,
+            displayDuration: 5000,
+            suspicious: true
+        },
+        {
+            id: "false_all_clear",
+            sender: "掃討班",
+            content: "全エイリアン掃討完了。船内は安全だ。通常業務に戻れ。",
+            trigger: "floor_19_reached",
+            effect: "false_security",
+            priority: "medium",
+            oneTime: true,
+            displayDuration: 6000,
+            suspicious: true
+        }
+    ]
+};

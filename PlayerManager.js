@@ -165,10 +165,14 @@ class PlayerManager {
     }
 
     processTurn(gameInstance) {
-        // 酸素消費（酸素リサイクラーで半減）
+        // 酸素消費（酸素リサイクラーで半減、通信効果でさらに削減）
         let oxygenCost = 1 + Math.floor(gameInstance.floor / 5);
         if (this.player.abilities.oxygenRecycler.unlocked) {
             oxygenCost = Math.ceil(oxygenCost / 2);
+        }
+        // 通信システムの酸素効率化効果を適用
+        if (gameInstance.communicationManager) {
+            oxygenCost = Math.ceil(oxygenCost * gameInstance.communicationManager.getOxygenEfficiency());
         }
         this.player.oxygen = Math.max(0, this.player.oxygen - oxygenCost);
         
@@ -265,8 +269,15 @@ class PlayerManager {
 
     executeShield(gameInstance) {
         this.player.shieldActive = true;
-        this.player.shieldDuration = 3; // 3ターン持続
-        gameInstance.addCombatLog('シールドを展開！3ターンの間、全ての攻撃を無効化します');
+        let baseDuration = 3; // 基本3ターン持続
+        
+        // 通信システムのシールド強化効果を適用
+        if (gameInstance.communicationManager) {
+            baseDuration += gameInstance.communicationManager.getShieldDurationBonus();
+        }
+        
+        this.player.shieldDuration = baseDuration;
+        gameInstance.addCombatLog(`シールドを展開！${baseDuration}ターンの間、全ての攻撃を無効化します`);
         gameInstance.soundManager.playShieldEffect();
     }
 
