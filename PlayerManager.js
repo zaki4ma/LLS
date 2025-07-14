@@ -14,7 +14,8 @@ class PlayerManager {
                 oxygenRecycler: { unlocked: false, passive: true },
                 autoMedic: { unlocked: false, passive: true }
             },
-            shieldActive: false
+            shieldActive: false,
+            facing: 'down' // プレイヤーの向き: 'up', 'down', 'left', 'right'
         };
     }
 
@@ -25,6 +26,12 @@ class PlayerManager {
     movePlayer(dx, dy, gameInstance) {
         const newX = this.player.x + dx;
         const newY = this.player.y + dy;
+        
+        // プレイヤーの向きを更新
+        if (dx > 0) this.player.facing = 'right';
+        else if (dx < 0) this.player.facing = 'left';
+        else if (dy > 0) this.player.facing = 'down';
+        else if (dy < 0) this.player.facing = 'up';
         
         if (newX >= 0 && newX < gameInstance.gridSize && newY >= 0 && newY < gameInstance.gridSize) {
             const cellType = gameInstance.grid[newY][newX];

@@ -13,14 +13,16 @@ class RenderManager {
         
         const playerX = gameInstance.playerManager.player.x;
         const playerY = gameInstance.playerManager.player.y;
+        const facing = gameInstance.playerManager.player.facing;
         
         gameInstance.visibleCells[playerY][playerX] = true;
         
         for (let y = Math.max(0, playerY - this.lightRadius); y <= Math.min(this.gridSize - 1, playerY + this.lightRadius); y++) {
             for (let x = Math.max(0, playerX - this.lightRadius); x <= Math.min(this.gridSize - 1, playerX + this.lightRadius); x++) {
                 const distance = Math.sqrt((x - playerX) ** 2 + (y - playerY) ** 2);
+                const effectiveRange = this.getEffectiveRange(playerX, playerY, x, y, facing);
                 
-                if (distance <= this.lightRadius && this.hasLineOfSight(playerX, playerY, x, y, gameInstance)) {
+                if (distance <= effectiveRange && this.hasLineOfSight(playerX, playerY, x, y, gameInstance)) {
                     gameInstance.visibleCells[y][x] = true;
                     
                     if (gameInstance.grid[y][x] !== null) {
@@ -31,6 +33,42 @@ class RenderManager {
                 }
             }
         }
+    }
+    
+    getEffectiveRange(playerX, playerY, targetX, targetY, facing) {
+        const dx = targetX - playerX;
+        const dy = targetY - playerY;
+        
+        // 向いている方向を判定
+        let isFacingDirection = false;
+        let isBackDirection = false;
+        
+        switch (facing) {
+            case 'up':
+                isFacingDirection = dy < 0;
+                isBackDirection = dy > 0;
+                break;
+            case 'down':
+                isFacingDirection = dy > 0;
+                isBackDirection = dy < 0;
+                break;
+            case 'left':
+                isFacingDirection = dx < 0;
+                isBackDirection = dx > 0;
+                break;
+            case 'right':
+                isFacingDirection = dx > 0;
+                isBackDirection = dx < 0;
+                break;
+        }
+        
+        // 背後方向は照明範囲を2マスに制限
+        if (isBackDirection) {
+            return 2;
+        }
+        
+        // 向いている方向は通常の照明範囲を維持
+        return this.lightRadius;
     }
 
     hasLineOfSight(x1, y1, x2, y2, gameInstance) {
