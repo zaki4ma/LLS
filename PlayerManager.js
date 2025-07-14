@@ -114,10 +114,10 @@ class PlayerManager {
         // ログ表示（クリティカル時は特別な表示）
         if (isCritical) {
             gameInstance.addCombatLog(`💥 CRITICAL HIT！${alien.typeData.name}に${damage}ダメージ！`);
-            gameInstance.soundManager.playCriticalHit();
+            if (gameInstance.soundManager) gameInstance.soundManager.playCriticalHit();
         } else {
             gameInstance.addCombatLog(`${alien.typeData.name}に${damage}ダメージ！`);
-            gameInstance.soundManager.playAttack();
+            if (gameInstance.soundManager) gameInstance.soundManager.playAttack();
         }
         
         // ダメージエフェクト表示（クリティカル時は色を変更）
@@ -160,7 +160,7 @@ class PlayerManager {
             
             gameInstance.addCombatLog(`レベルアップ！ Lv.${this.player.level} HP、攻撃力、防御力が上昇！`);
             gameInstance.addCombatLog(`クリティカル率: ${Math.floor(this.player.criticalChance * 100)}%`);
-            gameInstance.soundManager.playLevelUp();
+            if (gameInstance.soundManager) gameInstance.soundManager.playLevelUp();
         }
     }
 
@@ -191,7 +191,7 @@ class PlayerManager {
             const suffocationDamage = 5;
             this.player.hp -= suffocationDamage;
             gameInstance.addCombatLog(`酸素不足！ ${suffocationDamage}ダメージ！`);
-            gameInstance.soundManager.playDamage();
+            if (gameInstance.soundManager) gameInstance.soundManager.playDamage();
             
             // 酸素不足ダメージエフェクト（青色で表示）
             gameInstance.renderManager.showFloatingText(this.player.x, this.player.y, `-${suffocationDamage}`, '#4444ff');
@@ -257,7 +257,7 @@ class PlayerManager {
                 gameInstance.grid[this.player.y][this.player.x] = 'player';
                 teleported = true;
                 gameInstance.addCombatLog('緊急テレポートを実行！');
-                gameInstance.soundManager.playTeleportEffect();
+                if (gameInstance.soundManager) gameInstance.soundManager.playTeleportEffect();
             }
             attempts++;
         }
@@ -278,7 +278,7 @@ class PlayerManager {
         
         this.player.shieldDuration = baseDuration;
         gameInstance.addCombatLog(`シールドを展開！${baseDuration}ターンの間、全ての攻撃を無効化します`);
-        gameInstance.soundManager.playShieldEffect();
+        if (gameInstance.soundManager) gameInstance.soundManager.playShieldEffect();
     }
 
     executeBlast(gameInstance) {
@@ -330,7 +330,7 @@ class PlayerManager {
         }
         
         gameInstance.addCombatLog(`エナジーブラストを発射！${hitCount}体の敵にダメージ`);
-        gameInstance.soundManager.playBlastEffect();
+        if (gameInstance.soundManager) gameInstance.soundManager.playBlastEffect();
         this.checkLevelUp(gameInstance);
     }
 
@@ -352,7 +352,7 @@ class PlayerManager {
         }
         
         gameInstance.addCombatLog(`ハッキングを実行！${hackedCount}つの隔壁を無力化`);
-        gameInstance.soundManager.playHackEffect();
+        if (gameInstance.soundManager) gameInstance.soundManager.playHackEffect();
     }
 
     takeDamage(damage, gameInstance) {
@@ -363,7 +363,7 @@ class PlayerManager {
         }
         
         this.player.hp -= damage;
-        gameInstance.soundManager.playDamage();
+        if (gameInstance.soundManager) gameInstance.soundManager.playDamage();
         
         // ダメージエフェクト
         gameInstance.renderManager.showFloatingText(this.player.x, this.player.y, `-${damage}`, '#ff4444');
@@ -380,7 +380,7 @@ class PlayerManager {
     triggerGameOver(gameInstance, message) {
         gameInstance.gameOver = true;
         gameInstance.addCombatLog(message);
-        gameInstance.soundManager.playGameOver();
+        if (gameInstance.soundManager) gameInstance.soundManager.playGameOver();
         
         // スコアデータを準備
         const scoreData = {

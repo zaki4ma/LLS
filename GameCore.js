@@ -28,8 +28,7 @@ class RoguelikeGame {
         // 敵図鑑システム
         this.encounteredEnemies = new Set();
         
-        // コンポーネントの初期化
-        this.soundManager = new SoundManager();
+        // コンポーネントの初期化（音声を最後に初期化）
         this.rankingManager = new RankingManager();
         this.playerManager = new PlayerManager();
         this.levelGenerator = new LevelGenerator(this.gridSize);
@@ -39,11 +38,21 @@ class RoguelikeGame {
         this.uiManager = new UIManager();
         this.upgradeManager = new UpgradeManager();
         this.rangedWeaponManager = new RangedWeaponManager();
+        
+        // 通信システムを再度有効化
         this.communicationManager = new CommunicationManager();
         
         this.uiManager.init(this);
-        this.initSound();
         this.init();
+        
+        // 音声システムは最後に初期化（エラーがあってもゲーム本体には影響しない）
+        try {
+            this.soundManager = new SoundManager();
+            this.initSound();
+        } catch (error) {
+            console.warn('Sound system initialization failed, continuing without sound:', error);
+            this.soundManager = null;
+        }
         
         // 通信システムをグローバルに設定
         window.communicationManager = this.communicationManager;
@@ -51,10 +60,20 @@ class RoguelikeGame {
 
     // 初期化とサウンド関連のメソッド
     async initSound() {
+        if (!this.soundManager) {
+            console.warn('Sound manager not available');
+            return;
+        }
+        
         // サウンドコントロールの設定
         const soundToggle = document.getElementById('sound-toggle');
         const bgmVolumeSlider = document.getElementById('bgm-volume-slider');
         const sfxVolumeSlider = document.getElementById('sfx-volume-slider');
+        
+        if (!soundToggle || !bgmVolumeSlider || !sfxVolumeSlider) {
+            console.warn('Sound control elements not found');
+            return;
+        }
         
         // 初回クリックで音声を初期化
         let soundInitialized = false;
@@ -65,6 +84,11 @@ class RoguelikeGame {
                 soundToggle.textContent = '初期化中...';
                 
                 try {
+                    // AudioContextの状態をチェック
+                    if (Tone.context.state === 'suspended') {
+                        await Tone.start();
+                    }
+                    
                     await this.soundManager.init();
                     this.soundManager.start();
                     this.addCombatLog('サウンドシステムが有効になりました！');
@@ -93,11 +117,25 @@ class RoguelikeGame {
     }
 
     init() {
-        this.levelGenerator.generateLevel(this);
-        this.renderManager.render(this);
-        this.setupEventListeners();
-        this.setupCommunicationEventListeners();
-        this.uiManager.updateStatus(this);
+        try {
+            console.log('Starting game initialization...');
+            
+            this.levelGenerator.generateLevel(this);
+            console.log('Level generated successfully');
+            
+            this.renderManager.render(this);
+            console.log('Render completed');
+            
+            this.setupEventListeners();
+            this.setupCommunicationEventListeners();
+            
+            this.uiManager.updateStatus(this);
+            console.log('Game initialization completed');
+            
+        } catch (error) {
+            console.error('Game initialization error:', error);
+            console.error('Error stack:', error.stack);
+        }
     }
 
     addCombatLog(message) {
@@ -333,9 +371,9 @@ class RoguelikeGame {
             // 攻撃成功後の処理
             result.results.forEach(res => {
                 if (res.killed) {
-                    this.soundManager.playAttack();
+                    if (this.soundManager) this.soundManager.playAttack();
                 } else if (res.critical) {
-                    this.soundManager.playCriticalHit();
+                    if (this.soundManager) this.soundManager.playCriticalHit();
                 }
             });
             

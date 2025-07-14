@@ -113,7 +113,7 @@ class ItemManager {
         player.gold += supply.gold;
         gameInstance.totalGoldCollected += supply.gold;
         gameInstance.addCombatLog(`金庫コンテナを発見！ Gold+${supply.gold}`);
-        gameInstance.soundManager.playCollect('gold');
+        if (gameInstance.soundManager) gameInstance.soundManager.playCollect('gold');
         gameInstance.grid[supply.y][supply.x] = 'floor';
         
         // ゴールド収集エフェクト
@@ -126,7 +126,7 @@ class ItemManager {
         player.oxygen = Math.min(player.maxOxygen, player.oxygen + oxygenSupply.oxygen);
         const actualOxygen = player.oxygen - oldOxygen;
         gameInstance.addCombatLog(`酸素コンテナを発見！ 酸素+${actualOxygen}`);
-        gameInstance.soundManager.playCollect('oxygen');
+        if (gameInstance.soundManager) gameInstance.soundManager.playCollect('oxygen');
         gameInstance.grid[oxygenSupply.y][oxygenSupply.x] = 'floor';
         
         // 酸素回復エフェクト
@@ -139,7 +139,7 @@ class ItemManager {
         player.hp = Math.min(player.maxHp, player.hp + medicalSupply.healing);
         const actualHealing = player.hp - oldHp;
         gameInstance.addCombatLog(`医療コンテナを発見！ HP+${actualHealing}`);
-        gameInstance.soundManager.playCollect('medical');
+        if (gameInstance.soundManager) gameInstance.soundManager.playCollect('medical');
         gameInstance.grid[medicalSupply.y][medicalSupply.x] = 'floor';
         
         // 回復エフェクト
@@ -151,7 +151,7 @@ class ItemManager {
         player.attack += weaponSupply.attackBonus;
         player.defense += weaponSupply.defenseBonus;
         gameInstance.addCombatLog(`武器コンテナを発見！ 攻撃力+${weaponSupply.attackBonus}, 防御力+${weaponSupply.defenseBonus}`);
-        gameInstance.soundManager.playCollect('weapon');
+        if (gameInstance.soundManager) gameInstance.soundManager.playCollect('weapon');
         gameInstance.grid[weaponSupply.y][weaponSupply.x] = 'floor';
         
         // 武器強化エフェクト
@@ -199,7 +199,7 @@ class ItemManager {
         player.power = Math.min(player.maxPower, player.power + chargeStation.powerRestore);
         const actualPowerRestore = player.power - oldPower;
         gameInstance.addCombatLog(`電力チャージステーションを使用！ 電力+${actualPowerRestore}`);
-        gameInstance.soundManager.playCollect('item');
+        if (gameInstance.soundManager) gameInstance.soundManager.playCollect('item');
         gameInstance.grid[chargeStation.y][chargeStation.x] = 'floor';
         
         // 電力回復エフェクト
@@ -214,7 +214,7 @@ class ItemManager {
         
         if (success) {
             gameInstance.addCombatLog(`${weaponContainer.weaponIcon} ${weaponContainer.weaponName} ×${weaponContainer.quantity} を入手！`);
-            gameInstance.soundManager.playCollect('weapon');
+            if (gameInstance.soundManager) gameInstance.soundManager.playCollect('weapon');
             gameInstance.grid[weaponContainer.y][weaponContainer.x] = 'floor';
             
             // 武器入手エフェクト

@@ -4,9 +4,11 @@ class UIManager {
     }
 
     init(gameInstance) {
+        console.log('UIManager init starting...');
         this.gameInstance = gameInstance;
         // グローバル参照を設定
         window.uiManager = this;
+        console.log('UIManager init completed');
     }
 
     addCombatLog(message) {
@@ -18,6 +20,7 @@ class UIManager {
     }
 
     updateStatus(gameInstance) {
+        console.log('Updating UI status...');
         const player = gameInstance.playerManager.player;
         
         document.getElementById('player-hp').textContent = Math.max(0, player.hp);

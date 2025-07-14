@@ -42,10 +42,10 @@
         
         .center-panel {
             grid-column: 2;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: center !important;
+            justify-content: center !important;
         }
         
         .right-panel {
@@ -56,29 +56,32 @@
         }
         
         .grid {
-            display: grid;
-            grid-template-columns: repeat(20, 1fr);
-            grid-template-rows: repeat(20, 1fr);
-            gap: 1px;
-            background-color: #001122;
-            border: 2px solid #00aaff;
-            width: 600px;
-            height: 600px;
-            box-shadow: 0 0 20px rgba(0, 170, 255, 0.3);
+            display: grid !important;
+            grid-template-columns: repeat(20, 1fr) !important;
+            grid-template-rows: repeat(20, 1fr) !important;
+            gap: 1px !important;
+            background-color: #001122 !important;
+            border: 2px solid #00aaff !important;
+            width: 600px !important;
+            height: 600px !important;
+            box-shadow: 0 0 20px rgba(0, 170, 255, 0.3) !important;
+            position: relative !important;
+            z-index: 1 !important;
         }
         
         .cell {
-            background-color: #0a1420;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 15px;
-            font-weight: bold;
-            width: 28px;
-            height: 28px;
-            box-sizing: border-box;
-            border: 1px solid #004477;
-            transition: all 0.2s ease;
+            background-color: #0a1420 !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            font-size: 15px !important;
+            font-weight: bold !important;
+            width: 28px !important;
+            height: 28px !important;
+            box-sizing: border-box !important;
+            border: 1px solid #004477 !important;
+            transition: all 0.2s ease !important;
+            position: relative !important;
         }
         
         .player { color: #00ff00; text-shadow: 0 0 10px #00ff00; }
@@ -550,8 +553,9 @@
         
         /* 明かりシステム用のスタイル */
         .cell.dark {
-            opacity: 0.3;
+            opacity: 0.15;
             background-color: #000511 !important;
+            filter: brightness(0.2);
         }
         
         .cell.explored {
@@ -964,7 +968,12 @@
         let game;
         
         window.onload = () => {
-            game = new RoguelikeGame();
+            try {
+                game = new RoguelikeGame();
+                console.log('Game initialized successfully');
+            } catch (error) {
+                console.error('Game initialization failed:', error);
+            }
         };
     </script>
 </body>

@@ -160,7 +160,7 @@ class UpgradeManager {
         gameInstance.elevatorPlaced = false; // エレベーターフラグをリセット
         
         // BGMを切り替え
-        gameInstance.soundManager.changeBGM(gameInstance.floor);
+        if (gameInstance.soundManager) gameInstance.soundManager.changeBGM(gameInstance.floor);
         
         // 特定のデッキでメッセージを表示
         if (gameInstance.floor === 6) {
@@ -174,7 +174,7 @@ class UpgradeManager {
         }
         
         gameInstance.addCombatLog(`=== デッキ ${gameInstance.floor} ===`);
-        gameInstance.soundManager.playElevator();
+        if (gameInstance.soundManager) gameInstance.soundManager.playElevator();
         gameInstance.levelGenerator.generateLevel(gameInstance);
         
         // マップを表示し、ステータスを更新

@@ -16,6 +16,7 @@ class RenderManager {
         const playerY = gameInstance.playerManager.player.y;
         const facing = gameInstance.playerManager.player.facing;
         
+        console.log('Player visibility at:', playerX, playerY, 'facing:', facing);
         gameInstance.visibleCells[playerY][playerX] = true;
         
         // 通信システムの全フロア照明効果をチェック
@@ -34,13 +35,27 @@ class RenderManager {
             return;
         }
         
-        for (let y = Math.max(0, playerY - this.lightRadius); y <= Math.min(this.gridSize - 1, playerY + this.lightRadius); y++) {
-            for (let x = Math.max(0, playerX - this.lightRadius); x <= Math.min(this.gridSize - 1, playerX + this.lightRadius); x++) {
+        let visibleCount = 0;
+        const minY = Math.max(0, playerY - this.lightRadius);
+        const maxY = Math.min(this.gridSize - 1, playerY + this.lightRadius);
+        const minX = Math.max(0, playerX - this.lightRadius);
+        const maxX = Math.min(this.gridSize - 1, playerX + this.lightRadius);
+        
+        // console.log('Visibility range:', minX, minY, 'to', maxX, maxY);
+        
+        for (let y = minY; y <= maxY; y++) {
+            for (let x = minX; x <= maxX; x++) {
                 const distance = Math.sqrt((x - playerX) ** 2 + (y - playerY) ** 2);
                 const effectiveRange = this.getEffectiveRange(playerX, playerY, x, y, facing);
                 
+                // デバッグ用：いくつかのセルの範囲を確認（無効化）
+                // if (Math.abs(x - playerX) <= 1 && Math.abs(y - playerY) <= 1) {
+                //     console.log(`Cell (${x},${y}): distance=${distance.toFixed(2)}, effectiveRange=${effectiveRange}`);
+                // }
+                
                 if (distance <= effectiveRange && this.hasLineOfSight(playerX, playerY, x, y, gameInstance)) {
                     gameInstance.visibleCells[y][x] = true;
+                    visibleCount++;
                     
                     if (gameInstance.grid[y][x] !== null) {
                         gameInstance.exploredCells[y][x] = {
@@ -50,6 +65,7 @@ class RenderManager {
                 }
             }
         }
+        console.log('Visible cells count:', visibleCount);
     }
     
     getEffectiveRange(playerX, playerY, targetX, targetY, facing) {
@@ -131,20 +147,37 @@ class RenderManager {
     }
 
     render(gameInstance) {
-        this.calculateVisibility(gameInstance);
-        
-        const gridElement = document.getElementById('game-grid');
-        if (!gridElement) return;
-        
-        gridElement.innerHTML = '';
-        
-        for (let y = 0; y < this.gridSize; y++) {
-            for (let x = 0; x < this.gridSize; x++) {
-                const cell = document.createElement('div');
-                cell.className = 'cell';
-                const cellType = gameInstance.grid[y][x];
-                const isVisible = gameInstance.visibleCells[y][x];
-                const isExplored = gameInstance.exploredCells[y][x] !== null;
+        try {
+            // console.log('Starting render process...');
+            
+            this.calculateVisibility(gameInstance);
+            // console.log('Visibility calculated');
+            
+            const gridElement = document.getElementById('game-grid');
+            if (!gridElement) {
+                console.error('game-grid element not found');
+                return;
+            }
+            // console.log('Grid element found:', gridElement);
+            
+            gridElement.innerHTML = '';
+            // console.log('Grid cleared');
+            
+            let cellsRendered = 0;
+            for (let y = 0; y < this.gridSize; y++) {
+                for (let x = 0; x < this.gridSize; x++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    const cellType = gameInstance.grid[y][x];
+                    const isVisible = gameInstance.visibleCells[y][x];
+                    const isExplored = gameInstance.exploredCells[y][x] !== null;
+                    
+                    // デバッグ用：最初の数セルの状態を確認（一時的に無効化）
+                    // if (cellsRendered < 20) {
+                    //     console.log(`Cell ${x},${y}: type=${cellType}, visible=${isVisible}, explored=${isExplored}`);
+                    // }
+                    
+                    cellsRendered++;
                 
                 // 遠距離攻撃の射程範囲を表示
                 if (gameInstance.isRangedAttackMode && gameInstance.selectedRangedWeapon) {
@@ -154,16 +187,18 @@ class RenderManager {
                     }
                 }
                 
-                if (!isVisible && !isExplored) {
-                    cell.classList.add('hidden');
-                    gridElement.appendChild(cell);
-                    continue;
-                }
+                // 視界システムを一時的に無効化して全体を表示
+                // if (!isVisible && !isExplored) {
+                //     cell.classList.add('hidden');
+                //     gridElement.appendChild(cell);
+                //     continue;
+                // }
                 
                 if (cellType === 'player') {
                     cell.textContent = '@';
                     cell.classList.add('player');
                     cell.classList.add('lit');
+                    // console.log('Player cell rendered at:', x, y);
                     
                     // シールドが有効な場合の視覚的表示
                     if (gameInstance.playerManager.player.shieldActive) {
@@ -190,22 +225,48 @@ class RenderManager {
                             // 敵タイプ別アニメーション
                             this.addEnemyAnimation(cell, livingAlien.type);
                         }
-                    } else if (isVisible) {
+                    } else {
+                        // すべてのセルを描画
                         this.renderCell(cell, cellType);
-                    } else if (isExplored) {
-                        this.renderCell(cell, gameInstance.exploredCells[y][x].terrain);
-                        cell.classList.add('explored');
+                        
+                        // 視界状態に応じてスタイルを適用
+                        if (isVisible) {
+                            cell.classList.add('lit');
+                        } else if (isExplored) {
+                            cell.classList.add('explored');
+                        } else {
+                            cell.classList.add('dark');
+                        }
                     }
                 }
                 
-                if (!isVisible) {
-                    cell.classList.add('dark');
-                } else {
-                    cell.classList.add('lit');
-                }
+                // スタイルは上で適用済み
+                // if (!isVisible) {
+                //     cell.classList.add('dark');
+                // } else {
+                //     cell.classList.add('lit');
+                // }
                 
                 gridElement.appendChild(cell);
             }
+        }
+        
+        console.log(`Rendered ${cellsRendered} cells successfully`);
+        // console.log('Grid element after render:', gridElement);
+        // console.log('Grid element children count:', gridElement.children.length);
+        // console.log('Grid element style:', window.getComputedStyle(gridElement));
+        
+        // サンプルのセルを確認
+        // if (gridElement.children.length > 0) {
+        //     const sampleCell = gridElement.children[0];
+        //     console.log('Sample cell:', sampleCell);
+        //     console.log('Sample cell classes:', sampleCell.className);
+        //     console.log('Sample cell style:', window.getComputedStyle(sampleCell));
+        // }
+        
+        } catch (error) {
+            console.error('Render error:', error);
+            console.error('Error stack:', error.stack);
         }
     }
 
@@ -226,6 +287,7 @@ class RenderManager {
     }
 
     renderCell(cell, cellType) {
+        // console.log('Rendering cell type:', cellType);
         switch (cellType) {
             case 'floor':
                 cell.classList.add('floor');

@@ -11,7 +11,15 @@ class SoundManager {
     }
     
     async init() {
-        await Tone.start();
+        try {
+            // AudioContextがユーザーの操作後に開始されるように
+            if (Tone.context.state === 'suspended') {
+                await Tone.start();
+            }
+        } catch (e) {
+            console.warn('Audio context initialization failed:', e);
+            return;
+        }
         
         // 効果音用のシンセサイザーの作成
         this.synths.move = new Tone.Synth({
@@ -155,13 +163,13 @@ class SoundManager {
                     // 高音の装飾
                     if (Math.random() > config.highNoteChance) {
                         const highNote = Tone.Frequency(note).transpose(24).toNote();
-                        this.synths.bgm.triggerAttackRelease(highNote, '16n', time + Tone.Time('16n').toSeconds(), config.volume * 0.5);
+                        this.synths.bgm.triggerAttackRelease(highNote, '16n', time + 0.125, config.volume * 0.5);
                     }
                     
                     // 低音の重厚感（デッキ15以降）
                     if (config.name === 'deck15' || config.name === 'deck20') {
                         const lowNote = Tone.Frequency(note).transpose(-12).toNote();
-                        this.synths.bgm.triggerAttackRelease(lowNote, config.tempo, time + Tone.Time('32n').toSeconds(), config.volume * 0.3);
+                        this.synths.bgm.triggerAttackRelease(lowNote, config.tempo, time + 0.05, config.volume * 0.3);
                     }
                     
                     noteIndex++;
@@ -196,7 +204,13 @@ class SoundManager {
             if (this.enabled) {
                 try {
                     noise.start();
-                    setTimeout(() => noise.stop(), 3000);
+                    setTimeout(() => {
+                        try {
+                            noise.stop();
+                        } catch (e) {
+                            console.warn('Ventilation stop error:', e);
+                        }
+                    }, 3000);
                 } catch (e) {
                     console.warn('Ventilation sound error:', e);
                 }
@@ -528,16 +542,25 @@ class SoundManager {
     
     start() {
         if (this.initialized) {
-            // 全てのBGMトラックを開始
-            Object.values(this.bgmTracks).forEach(track => {
-                track.start(0);
-            });
-            
-            this.loops.beep.start(0);
-            this.loops.ventilation.start(0);
-            
-            // トランスポートを開始
-            Tone.Transport.start();
+            try {
+                // AudioContextの状態をチェック
+                if (Tone.context.state === 'suspended') {
+                    Tone.start();
+                }
+                
+                // 全てのBGMトラックを開始
+                Object.values(this.bgmTracks).forEach(track => {
+                    track.start(0);
+                });
+                
+                this.loops.beep.start(0);
+                this.loops.ventilation.start(0);
+                
+                // トランスポートを開始
+                Tone.Transport.start();
+            } catch (e) {
+                console.warn('Audio start error:', e);
+            }
         }
     }
     

@@ -6,26 +6,34 @@ class LevelGenerator {
     }
 
     generateLevel(gameInstance) {
+        console.log('LevelGenerator: Starting level generation...');
+        
         // グリッドを初期化
         gameInstance.grid = Array(this.gridSize).fill().map(() => Array(this.gridSize).fill(null));
         gameInstance.visibleCells = Array(this.gridSize).fill().map(() => Array(this.gridSize).fill(false));
         gameInstance.exploredCells = Array(this.gridSize).fill().map(() => Array(this.gridSize).fill(null));
+        console.log('LevelGenerator: Grids initialized');
         
         // 部屋を生成
         this.generateRooms(gameInstance);
+        console.log('LevelGenerator: Rooms generated, count:', this.rooms.length);
         
         // 隔壁を配置
         this.placeBulkheads(gameInstance);
+        console.log('LevelGenerator: Bulkheads placed');
         
         // プレイヤーを配置
         this.placePlayer(gameInstance);
+        console.log('LevelGenerator: Player placed at:', gameInstance.playerManager.player.x, gameInstance.playerManager.player.y);
         
         // 敵を配置
         gameInstance.enemyManager.placeAliens(gameInstance);
+        console.log('LevelGenerator: Aliens placed');
         
         // アイテムを配置
         gameInstance.itemManager.placeSupplies(gameInstance);
         gameInstance.itemManager.placeSpecialSupplies(gameInstance);
+        console.log('LevelGenerator: Items placed');
         
         // エレベーターを配置（デッキ20では配置しない - 最終マップ）
         if (gameInstance.floor < 20) {
@@ -33,11 +41,14 @@ class LevelGenerator {
         } else {
             gameInstance.addCombatLog('🏁 最終デッキ - エレベーターは機能していません');
         }
+        console.log('LevelGenerator: Elevator placed');
         
         // 視界を計算
         gameInstance.renderManager.calculateVisibility(gameInstance);
+        console.log('LevelGenerator: Visibility calculated');
         
         gameInstance.addCombatLog(`デッキ${gameInstance.floor}に到着しました`);
+        console.log('LevelGenerator: Level generation completed');
     }
 
     generateRooms(gameInstance) {
