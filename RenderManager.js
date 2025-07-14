@@ -562,4 +562,42 @@ class RenderManager {
             }, 300);
         }
     }
+    
+    // 回避エフェクト表示
+    showDodgeEffect(x, y, isPlayer = false) {
+        const gameGrid = document.getElementById('game-grid');
+        if (!gameGrid) return;
+        
+        const gridRect = gameGrid.getBoundingClientRect();
+        const cellSize = gridRect.width / this.gridSize;
+        
+        const effect = document.createElement('div');
+        effect.className = 'dodge-effect';
+        
+        const color = isPlayer ? '#00ff88' : '#ffff00';
+        effect.style.cssText = `
+            position: fixed;
+            left: ${gridRect.left + x * cellSize}px;
+            top: ${gridRect.top + y * cellSize}px;
+            width: ${cellSize}px;
+            height: ${cellSize}px;
+            border: 3px solid ${color};
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 1000;
+        `;
+        
+        document.body.appendChild(effect);
+        
+        setTimeout(() => {
+            effect.remove();
+        }, 600);
+    }
+    
+    // 回避確率表示（デバッグ用）
+    showDodgeChance(x, y, chance, duration = 2000) {
+        if (!this.debugMode) return;
+        
+        this.showFloatingText(x, y, `${chance}%`, '#888888', duration);
+    }
 }

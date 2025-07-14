@@ -22,6 +22,7 @@ class EnemyManager {
                 const level = gameInstance.floor + Math.floor(Math.random() * 2);
                 
                 const alien = { 
+                    id: `alien_${Date.now()}_${i}`, // 回避システム用の一意ID
                     x, y, 
                     hp: ENEMY_SCALING.baseHp + level * ENEMY_SCALING.hpPerLevel, 
                     maxHp: ENEMY_SCALING.baseHp + level * ENEMY_SCALING.hpPerLevel,
@@ -170,23 +171,47 @@ class EnemyManager {
 
     alienAttackPlayer(alien, gameInstance) {
         const player = gameInstance.playerManager.player;
+        
+        // 敵のクリティカル判定（基本10%、一部の敵は高い）
+        let criticalChance = 0.1;
+        if (alien.type === 'ASSASSIN') criticalChance = 0.25;
+        else if (alien.type === 'HUNTER') criticalChance = 0.15;
+        else if (alien.type === 'APEX') criticalChance = 0.2;
+        
+        const isCritical = Math.random() < criticalChance;
+        
+        // 基本ダメージ計算
         let damage = Math.max(1, alien.attack - player.defense);
+        
+        // クリティカル時のダメージ倍率
+        if (isCritical) {
+            damage = Math.floor(damage * 1.5);
+        }
         
         // 特殊攻撃処理
         if (alien.typeData.oxygenDrain) {
             // サイキック・エイリアンの酸素攻撃
             const oxygenDamage = 15;
             player.oxygen = Math.max(0, player.oxygen - oxygenDamage);
-            gameInstance.addCombatLog(`${alien.typeData.name}が精神攻撃！ 酸素-${oxygenDamage}, HP-${damage}`);
+            
+            if (isCritical) {
+                gameInstance.addCombatLog(`💥 ${alien.typeData.name}のクリティカル精神攻撃！ 酸素-${oxygenDamage}, HP-${damage}`);
+            } else {
+                gameInstance.addCombatLog(`${alien.typeData.name}が精神攻撃！ 酸素-${oxygenDamage}, HP-${damage}`);
+            }
             
             // 酸素ダメージエフェクト
             gameInstance.renderManager.showFloatingText(player.x, player.y, `-15 O₂`, '#00aaff');
         } else {
-            gameInstance.addCombatLog(`${alien.typeData.name}の攻撃！ ${damage}ダメージ！`);
+            if (isCritical) {
+                gameInstance.addCombatLog(`💥 ${alien.typeData.name}のクリティカル攻撃！ ${damage}ダメージ！`);
+            } else {
+                gameInstance.addCombatLog(`${alien.typeData.name}の攻撃！ ${damage}ダメージ！`);
+            }
         }
         
-        // プレイヤーにダメージを与える
-        gameInstance.playerManager.takeDamage(damage, gameInstance);
+        // プレイヤーにダメージを与える（クリティカル情報を渡す）
+        gameInstance.playerManager.takeDamage(damage, gameInstance, isCritical);
     }
 
     getAliveAliens() {

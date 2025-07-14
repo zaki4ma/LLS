@@ -320,7 +320,7 @@ class CommunicationManager {
 
     // 酸素効率化の効果を取得
     getOxygenEfficiency() {
-        return this.effectiveBoosts.oxygenEfficiency ? 0.8 : 1.0; // 20%削減
+        return this.effectiveBoosts.oxygenEfficiency ? 0.65 : 1.0; // 35%削減に強化
     }
 
     // シールド持続時間の効果を取得

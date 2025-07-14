@@ -13,11 +13,16 @@ class PlayerManager {
                 blast: { unlocked: false, uses: 0, maxUses: 2 },
                 hack: { unlocked: false, uses: 0, maxUses: 3 },
                 oxygenRecycler: { unlocked: false, passive: true },
-                autoMedic: { unlocked: false, passive: true }
+                autoMedic: { unlocked: false, passive: true },
+                agilityTraining: { unlocked: false, passive: true },
+                reflexes: { unlocked: false, passive: true },
+                combatAwareness: { unlocked: false, passive: true }
             },
             shieldActive: false,
             shieldDuration: 0, // シールドの残りターン数
-            facing: 'down' // プレイヤーの向き: 'up', 'down', 'left', 'right'
+            facing: 'down', // プレイヤーの向き: 'up', 'down', 'left', 'right'
+            dodgeBonus: 0, // 装備やアップグレードによる回避ボーナス
+            onElevator: false // エレベーター上にいるかどうか
         };
     }
 
@@ -83,6 +88,13 @@ class PlayerManager {
             }
             
             if (cellType === 'elevator') {
+                // プレイヤーの位置を更新し、エレベーター状態を記録
+                gameInstance.grid[this.player.y][this.player.x] = 'floor';
+                this.player.x = newX;
+                this.player.y = newY;
+                this.player.onElevator = true; // エレベーター上にいることを記録
+                gameInstance.grid[this.player.y][this.player.x] = 'player';
+                
                 gameInstance.upgradeManager.showUpgradeMenu(gameInstance);
                 return false; // エレベーターはターン処理しない
             }
@@ -90,8 +102,10 @@ class PlayerManager {
             gameInstance.grid[this.player.y][this.player.x] = 'floor';
             this.player.x = newX;
             this.player.y = newY;
+            this.player.onElevator = false; // 通常移動時はエレベーター状態をリセット
             gameInstance.grid[this.player.y][this.player.x] = 'player';
             
+            console.log('Player moved successfully to:', newX, newY);
             return true; // 移動したのでターン処理を行う
         }
         return false;
@@ -100,6 +114,26 @@ class PlayerManager {
     attackAlien(alien, gameInstance) {
         // クリティカル判定
         const isCritical = Math.random() < this.player.criticalChance;
+        
+        // 敵の回避判定
+        const dodgeResult = gameInstance.dodgeSystem.checkEnemyDodge(alien, isCritical, gameInstance);
+        
+        if (dodgeResult.dodged) {
+            // 回避成功
+            gameInstance.addCombatLog(
+                `${alien.typeData.name}が攻撃を回避した！ (${dodgeResult.chance}%)`
+            );
+            
+            // 回避エフェクト表示
+            gameInstance.renderManager.showFloatingText(
+                alien.x, alien.y, "MISS", '#ffff00'
+            );
+            
+            // 音響効果
+            if (gameInstance.soundManager) gameInstance.soundManager.playSound('dodge');
+            
+            return { hit: false, damage: 0, critical: false, dodged: true };
+        }
         
         // 基本ダメージ計算
         let damage = Math.max(1, this.player.attack - alien.defense);
@@ -165,16 +199,34 @@ class PlayerManager {
     }
 
     processTurn(gameInstance) {
-        // 酸素消費（酸素リサイクラーで半減、通信効果でさらに削減）
-        let oxygenCost = 1 + Math.floor(gameInstance.floor / 5);
-        if (this.player.abilities.oxygenRecycler.unlocked) {
-            oxygenCost = Math.ceil(oxygenCost / 2);
+        console.log('=== PlayerManager.processTurn called ===');
+        console.log('Before turn - HP:', this.player.hp, 'Oxygen:', this.player.oxygen, 'Power:', this.player.power);
+        
+        // 酸素消費（より緩やかな増加に調整）
+        // 新しい計算式：デッキ1-4は1、デッキ5-10は1.3、デッキ11-16は1.6、デッキ17+は1.9
+        let oxygenCost = 1;
+        if (gameInstance.floor >= 5) {
+            oxygenCost = 1 + Math.floor((gameInstance.floor - 1) / 6) * 0.3;
         }
+        
+        console.log('Base oxygen cost:', oxygenCost);
+        
+        // 酸素リサイクラーで大幅削減（65%削減に強化）
+        if (this.player.abilities.oxygenRecycler.unlocked) {
+            oxygenCost = Math.ceil(oxygenCost * 0.35);
+            console.log('Oxygen cost after recycler:', oxygenCost);
+        }
+        
         // 通信システムの酸素効率化効果を適用
         if (gameInstance.communicationManager) {
-            oxygenCost = Math.ceil(oxygenCost * gameInstance.communicationManager.getOxygenEfficiency());
+            const efficiency = gameInstance.communicationManager.getOxygenEfficiency();
+            oxygenCost = Math.ceil(oxygenCost * efficiency);
+            console.log('Oxygen efficiency:', efficiency, 'Final cost:', oxygenCost);
         }
+        
+        const oldOxygen = this.player.oxygen;
         this.player.oxygen = Math.max(0, this.player.oxygen - oxygenCost);
+        console.log('Oxygen change:', oldOxygen, '->', this.player.oxygen, '(cost:', oxygenCost, ')');
         
         // 電力は自然減少しない（武器使用時のみ消費）
         
@@ -206,9 +258,14 @@ class PlayerManager {
         // オートメディック処理
         if (this.player.abilities.autoMedic.unlocked && this.player.hp < this.player.maxHp * 0.5) {
             const healAmount = Math.floor(this.player.maxHp * 0.1);
+            const oldHp = this.player.hp;
             this.player.hp = Math.min(this.player.maxHp, this.player.hp + healAmount);
+            console.log('AutoMedic healing:', oldHp, '->', this.player.hp, '(+' + healAmount + ')');
             gameInstance.addCombatLog(`オートメディック作動！ HP+${healAmount}`);
         }
+        
+        console.log('After turn - HP:', this.player.hp, 'Oxygen:', this.player.oxygen, 'Power:', this.player.power);
+        console.log('=== PlayerManager.processTurn completed ===');
     }
 
     useAbility(abilityName, gameInstance) {
@@ -355,14 +412,41 @@ class PlayerManager {
         if (gameInstance.soundManager) gameInstance.soundManager.playHackEffect();
     }
 
-    takeDamage(damage, gameInstance) {
+    takeDamage(damage, gameInstance, isCritical = false) {
+        console.log('=== takeDamage called ===');
+        console.log('Damage:', damage, 'Current HP:', this.player.hp, 'Critical:', isCritical);
+        
         // シールドが有効な場合
         if (this.player.shieldActive) {
+            console.log('Damage blocked by shield');
             gameInstance.addCombatLog(`攻撃をシールドで防いだ！（残り${this.player.shieldDuration}ターン）`);
             return false; // ダメージを受けていない
         }
         
+        // プレイヤーの回避判定
+        const dodgeResult = gameInstance.dodgeSystem.checkPlayerDodge(null, isCritical, gameInstance);
+        
+        if (dodgeResult.dodged) {
+            // 回避成功
+            gameInstance.addCombatLog(
+                `攻撃を回避した！ (${dodgeResult.chance}%)`
+            );
+            
+            // 回避エフェクト表示
+            gameInstance.renderManager.showFloatingText(
+                this.player.x, this.player.y, "DODGE", '#00ff88'
+            );
+            
+            // 音響効果
+            if (gameInstance.soundManager) gameInstance.soundManager.playSound('player_dodge');
+            
+            return { damaged: false, finalDamage: 0, dodged: true };
+        }
+        
+        const oldHp = this.player.hp;
         this.player.hp -= damage;
+        console.log('HP change:', oldHp, '->', this.player.hp, '(damage:', damage, ')');
+        
         if (gameInstance.soundManager) gameInstance.soundManager.playDamage();
         
         // ダメージエフェクト
@@ -393,5 +477,17 @@ class PlayerManager {
         
         // ゲームオーバーモーダルを表示
         gameInstance.uiManager.showGameOverModal(scoreData);
+    }
+    
+    // 回避ボーナス取得（アップグレードシステム用）
+    getDodgeBonus() {
+        let bonus = this.player.dodgeBonus;
+        
+        // 敏捷性訓練による回避率ボーナス
+        if (this.player.abilities.agilityTraining.unlocked) {
+            bonus += 5;
+        }
+        
+        return bonus;
     }
 }

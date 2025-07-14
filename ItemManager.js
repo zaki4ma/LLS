@@ -29,10 +29,20 @@ class ItemManager {
         this.powerChargeStations = [];
         this.rangedWeaponContainers = [];
         
-        // 酸素補給
-        for (let i = 0; i < 2; i++) {
+        // 酸素補給（高層階で回復量と出現数を増加）
+        const oxygenContainerCount = gameInstance.floor >= 10 ? 3 : 2;
+        for (let i = 0; i < oxygenContainerCount; i++) {
+            // 高層階ほど回復量を増加（強化）
+            let baseOxygen = 35; // 30から35に増加
+            if (gameInstance.floor >= 10) {
+                baseOxygen = 55; // 50から55に増加
+            }
+            if (gameInstance.floor >= 15) {
+                baseOxygen = 75; // 70から75に増加
+            }
+            
             this.placeItem('oxygen-supply', { 
-                oxygen: 30 + Math.floor(Math.random() * 20),
+                oxygen: baseOxygen + Math.floor(Math.random() * 30),
                 taken: false
             }, gameInstance);
         }
@@ -180,15 +190,17 @@ class ItemManager {
         Object.entries(weaponChances).forEach(([weaponId, chance]) => {
             if (Math.random() < chance) {
                 const weaponData = RANGED_WEAPONS[weaponId.toUpperCase()];
-                const quantity = 1 + Math.floor(Math.random() * 2); // 1-2個
-                
-                this.placeItem('ranged-weapon-container', {
-                    weaponId: weaponId,
-                    weaponName: weaponData.name,
-                    weaponIcon: weaponData.icon,
-                    quantity: quantity,
-                    taken: false
-                }, gameInstance);
+                if (weaponData) {
+                    const quantity = 1 + Math.floor(Math.random() * 2); // 1-2個
+                    
+                    this.placeItem('ranged-weapon-container', {
+                        weaponId: weaponId,
+                        weaponName: weaponData.name,
+                        weaponIcon: weaponData.icon,
+                        quantity: quantity,
+                        taken: false
+                    }, gameInstance);
+                }
             }
         });
     }
@@ -209,8 +221,15 @@ class ItemManager {
     collectRangedWeaponContainer(weaponContainer, player, gameInstance) {
         weaponContainer.taken = true;
         
+        // デバッグログ
+        console.log('Collecting weapon:', weaponContainer.weaponId, 'quantity:', weaponContainer.quantity);
+        console.log('Current inventory before:', gameInstance.rangedWeaponManager.getWeaponInventory());
+        
         // 遠距離武器をインベントリに追加
         const success = gameInstance.rangedWeaponManager.addWeapon(weaponContainer.weaponId, weaponContainer.quantity);
+        
+        console.log('Add weapon success:', success);
+        console.log('Current inventory after:', gameInstance.rangedWeaponManager.getWeaponInventory());
         
         if (success) {
             gameInstance.addCombatLog(`${weaponContainer.weaponIcon} ${weaponContainer.weaponName} ×${weaponContainer.quantity} を入手！`);
@@ -219,6 +238,11 @@ class ItemManager {
             
             // 武器入手エフェクト
             gameInstance.renderManager.showFloatingText(weaponContainer.x, weaponContainer.y, `${weaponContainer.weaponIcon}×${weaponContainer.quantity}`, '#ff6600');
+            
+            // UI更新を強制実行
+            gameInstance.uiManager.updateRangedWeaponsDisplay(gameInstance);
+        } else {
+            console.error('Failed to add weapon to inventory');
         }
     }
 }
