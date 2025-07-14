@@ -41,10 +41,19 @@ class ItemManager {
             }, gameInstance);
         }
         
-        // 武器補給
-        if (Math.random() < 0.5) {
+        // 武器補給（出現率を50%から75%に上昇）
+        if (Math.random() < 0.75) {
             this.placeItem('weapon-supply', { 
                 attackBonus: 3 + Math.floor(Math.random() * 3),
+                defenseBonus: 1 + Math.floor(Math.random() * 2),
+                taken: false
+            }, gameInstance);
+        }
+        
+        // 高階層では追加の武器コンテナが出現する可能性
+        if (gameInstance.floor >= 3 && Math.random() < 0.4) {
+            this.placeItem('weapon-supply', { 
+                attackBonus: 2 + Math.floor(Math.random() * 4),
                 defenseBonus: 1 + Math.floor(Math.random() * 2),
                 taken: false
             }, gameInstance);

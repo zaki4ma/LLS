@@ -42,6 +42,20 @@ class SoundManager {
         }).toDestination();
         this.synths.alert.volume.value = Tone.gainToDb(this.sfxVolume);
         
+        // クリティカル攻撃用のシンセ
+        this.synths.critical = new Tone.Synth({
+            oscillator: { type: 'square' },
+            envelope: { attack: 0.01, decay: 0.3, sustain: 0, release: 0.3 }
+        }).toDestination();
+        this.synths.critical.volume.value = Tone.gainToDb(this.sfxVolume + 0.1);
+        
+        // レベルアップファンファーレ用のシンセ
+        this.synths.levelup = new Tone.PolySynth({
+            oscillator: { type: 'triangle' },
+            envelope: { attack: 0.01, decay: 0.3, sustain: 0.2, release: 0.8 }
+        }).toDestination();
+        this.synths.levelup.volume.value = Tone.gainToDb(this.sfxVolume + 0.1);
+        
         // アンビエントサウンド用のシンセ
         this.synths.ambient = new Tone.PolySynth({
             oscillator: { type: 'sine' },
@@ -166,6 +180,49 @@ class SoundManager {
             this.synths.damage.triggerAttackRelease('F2', '8n', now + 0.1, 0.2);
         } catch (e) {
             console.warn('Sound playback error:', e);
+        }
+    }
+    
+    playCriticalHit() {
+        if (!this.enabled || !this.initialized) return;
+        try {
+            // クリティカル攻撃音 - 鋭い金属音
+            const now = Tone.now();
+            // 高音から低音に下がる鋭い音
+            this.synths.critical.triggerAttackRelease('C6', '32n', now, 0.4);
+            this.synths.critical.triggerAttackRelease('A5', '32n', now + 0.03, 0.3);
+            this.synths.critical.triggerAttackRelease('F5', '32n', now + 0.06, 0.2);
+            this.synths.critical.triggerAttackRelease('D5', '32n', now + 0.09, 0.1);
+            
+            // 余韻として通常の攻撃音も少し遅れて再生
+            setTimeout(() => {
+                this.playAttack();
+            }, 100);
+        } catch (e) {
+            console.warn('Critical hit sound error:', e);
+        }
+    }
+    
+    playLevelUp() {
+        if (!this.enabled || !this.initialized) return;
+        try {
+            // レベルアップファンファーレ - 上昇する和音
+            const now = Tone.now();
+            
+            // 第1和音 (C Major)
+            this.synths.levelup.triggerAttackRelease(['C4', 'E4', 'G4'], '4n', now, 0.3);
+            
+            // 第2和音 (F Major)
+            this.synths.levelup.triggerAttackRelease(['F4', 'A4', 'C5'], '4n', now + 0.3, 0.3);
+            
+            // 第3和音 (G Major)
+            this.synths.levelup.triggerAttackRelease(['G4', 'B4', 'D5'], '4n', now + 0.6, 0.3);
+            
+            // 終了和音 (C Major - 高音)
+            this.synths.levelup.triggerAttackRelease(['C5', 'E5', 'G5', 'C6'], '2n', now + 0.9, 0.4);
+            
+        } catch (e) {
+            console.warn('Level up sound error:', e);
         }
     }
     
@@ -362,10 +419,12 @@ class SoundManager {
     setSFXVolume(value) {
         this.sfxVolume = value;
         // 効果音用のシンセサイザーの音量を更新
-        const sfxSynths = ['move', 'attack', 'damage', 'collect', 'alert', 'ambient'];
+        const sfxSynths = ['move', 'attack', 'damage', 'collect', 'alert', 'ambient', 'critical', 'levelup'];
         sfxSynths.forEach(synthName => {
             if (this.synths[synthName]) {
-                this.synths[synthName].volume.value = Tone.gainToDb(value);
+                // criticalとlevelupは少し音量を大きくする
+                const volumeBoost = (synthName === 'critical' || synthName === 'levelup') ? 0.1 : 0;
+                this.synths[synthName].volume.value = Tone.gainToDb(value + volumeBoost);
             }
         });
     }

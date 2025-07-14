@@ -95,11 +95,11 @@ class PlayerManager {
         // ログ表示（クリティカル時は特別な表示）
         if (isCritical) {
             gameInstance.addCombatLog(`💥 CRITICAL HIT！${alien.typeData.name}に${damage}ダメージ！`);
+            gameInstance.soundManager.playCriticalHit();
         } else {
             gameInstance.addCombatLog(`${alien.typeData.name}に${damage}ダメージ！`);
+            gameInstance.soundManager.playAttack();
         }
-        
-        gameInstance.soundManager.playAttack();
         
         // ダメージエフェクト表示（クリティカル時は色を変更）
         const damageColor = isCritical ? '#ff8800' : '#ff4444';
@@ -141,6 +141,7 @@ class PlayerManager {
             
             gameInstance.addCombatLog(`レベルアップ！ Lv.${this.player.level} HP、攻撃力、防御力が上昇！`);
             gameInstance.addCombatLog(`クリティカル率: ${Math.floor(this.player.criticalChance * 100)}%`);
+            gameInstance.soundManager.playLevelUp();
         }
     }
 
