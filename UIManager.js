@@ -25,6 +25,7 @@ class UIManager {
         document.getElementById('player-level').textContent = player.level;
         document.getElementById('player-attack').textContent = player.attack;
         document.getElementById('player-defense').textContent = player.defense;
+        document.getElementById('player-critical').textContent = Math.floor(player.criticalChance * 100);
         document.getElementById('player-gold').textContent = player.gold;
         document.getElementById('player-exp').textContent = player.exp;
         document.getElementById('player-expnext').textContent = player.expToNext;

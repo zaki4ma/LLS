@@ -4,6 +4,8 @@ class PlayerManager {
             x: 0, y: 0, hp: 100, maxHp: 100, attack: 20, defense: 5,
             level: 1, exp: 0, expToNext: 100, gold: 0,
             oxygen: 100, maxOxygen: 100,
+            criticalChance: 0.15, // 15%のクリティカル確率
+            criticalMultiplier: 2.0, // クリティカル時のダメージ倍率
             abilities: {
                 teleport: { unlocked: false, uses: 0, maxUses: 3 },
                 shield: { unlocked: false, uses: 0, maxUses: 2 },
@@ -77,14 +79,32 @@ class PlayerManager {
     }
 
     attackAlien(alien, gameInstance) {
-        const damage = Math.max(1, this.player.attack - alien.defense);
+        // クリティカル判定
+        const isCritical = Math.random() < this.player.criticalChance;
+        
+        // 基本ダメージ計算
+        let damage = Math.max(1, this.player.attack - alien.defense);
+        
+        // クリティカル時のダメージ倍率適用
+        if (isCritical) {
+            damage = Math.floor(damage * this.player.criticalMultiplier);
+        }
+        
         alien.hp -= damage;
         
-        gameInstance.addCombatLog(`${alien.typeData.name}に${damage}ダメージ！`);
+        // ログ表示（クリティカル時は特別な表示）
+        if (isCritical) {
+            gameInstance.addCombatLog(`💥 CRITICAL HIT！${alien.typeData.name}に${damage}ダメージ！`);
+        } else {
+            gameInstance.addCombatLog(`${alien.typeData.name}に${damage}ダメージ！`);
+        }
+        
         gameInstance.soundManager.playAttack();
         
-        // ダメージエフェクト表示
-        gameInstance.renderManager.showFloatingText(alien.x, alien.y, `-${damage}`, '#ff4444');
+        // ダメージエフェクト表示（クリティカル時は色を変更）
+        const damageColor = isCritical ? '#ff8800' : '#ff4444';
+        const damageText = isCritical ? `CRIT ${damage}!` : `-${damage}`;
+        gameInstance.renderManager.showFloatingText(alien.x, alien.y, damageText, damageColor);
         gameInstance.renderManager.showAttackFlash(alien.x, alien.y);
         
         if (alien.hp <= 0) {
@@ -114,7 +134,13 @@ class PlayerManager {
             this.player.attack += 2;
             this.player.defense += 1;
             
+            // レベルアップ時にクリティカル率も微増（最大30%まで）
+            if (this.player.criticalChance < 0.30) {
+                this.player.criticalChance = Math.min(0.30, this.player.criticalChance + 0.02);
+            }
+            
             gameInstance.addCombatLog(`レベルアップ！ Lv.${this.player.level} HP、攻撃力、防御力が上昇！`);
+            gameInstance.addCombatLog(`クリティカル率: ${Math.floor(this.player.criticalChance * 100)}%`);
         }
     }
 
@@ -222,12 +248,21 @@ class PlayerManager {
                 if (targetX >= 0 && targetX < gameInstance.gridSize && targetY >= 0 && targetY < gameInstance.gridSize) {
                     const alien = gameInstance.aliens.find(a => a.x === targetX && a.y === targetY && a.alive);
                     if (alien) {
-                        const damage = this.player.attack * 2;
+                        // エナジーブラストでもクリティカル判定
+                        const isCritical = Math.random() < this.player.criticalChance;
+                        let damage = this.player.attack * 2;
+                        
+                        if (isCritical) {
+                            damage = Math.floor(damage * this.player.criticalMultiplier);
+                        }
+                        
                         alien.hp -= damage;
                         hitCount++;
                         
-                        // ブラストダメージエフェクト
-                        gameInstance.renderManager.showFloatingText(targetX, targetY, `-${damage}`, '#ff8800');
+                        // ブラストダメージエフェクト（クリティカル時は色を変更）
+                        const damageColor = isCritical ? '#ffaa00' : '#ff8800';
+                        const damageText = isCritical ? `CRIT ${damage}!` : `-${damage}`;
+                        gameInstance.renderManager.showFloatingText(targetX, targetY, damageText, damageColor);
                         gameInstance.renderManager.showAttackFlash(targetX, targetY);
                         
                         if (alien.hp <= 0) {
