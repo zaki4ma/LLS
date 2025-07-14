@@ -4,7 +4,7 @@ const ALIEN_TYPES = {
         symbol: 'A',
         name: 'ベーシック・エイリアン',
         color: '#ff4444',
-        description: 'プレイヤーを直線的に追跡する基本的な敵',
+        description: 'マップ内をランダムに歩き回る基本的な敵。プレイヤーを発見すると追跡する',
         detectionRange: 3,
         minFloor: 1
     },
@@ -145,7 +145,7 @@ const ENEMY_SPAWN_WEIGHTS = {
 
 // 敵のレベルスケーリング設定
 const ENEMY_SCALING = {
-    baseHp: 20,
+    baseHp: 15, // ベーシックエイリアンが2回攻撃で倒せるよう調整
     hpPerLevel: 15, // デッキ毎のHP増加量を調整
     baseAttack: 5,
     attackPerLevel: 4, // デッキ毎の攻撃力増加量を調整

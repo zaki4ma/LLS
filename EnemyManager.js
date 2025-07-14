@@ -88,9 +88,19 @@ class EnemyManager {
                 continue;
             }
             
-            // 検知範囲内にいる場合は追跡
-            if (distance <= alien.typeData.detectionRange) {
-                this.moveAlienTowardsPlayer(alien, gameInstance);
+            // 敵タイプ別の行動パターン
+            if (alien.type === 'BASIC') {
+                // ベーシックエイリアンは検知範囲内でのみ追跡、それ以外はランダムに移動
+                if (distance <= alien.typeData.detectionRange) {
+                    this.moveAlienTowardsPlayer(alien, gameInstance);
+                } else {
+                    this.moveAlienRandomly(alien, gameInstance);
+                }
+            } else {
+                // 他の敵は従来の追跡行動
+                if (distance <= alien.typeData.detectionRange) {
+                    this.moveAlienTowardsPlayer(alien, gameInstance);
+                }
             }
         }
     }
@@ -120,6 +130,36 @@ class EnemyManager {
                            (alien.typeData.phaseThrough && cellType === 'bulkhead');
             
             if (canMove) {
+                gameInstance.grid[alien.y][alien.x] = 'floor';
+                alien.x = newX;
+                alien.y = newY;
+                gameInstance.grid[alien.y][alien.x] = 'alien';
+            }
+        }
+    }
+
+    moveAlienRandomly(alien, gameInstance) {
+        // ランダムな方向を選択（8方向 + 待機）
+        const directions = [
+            [-1, -1], [-1, 0], [-1, 1],
+            [0, -1],           [0, 1],
+            [1, -1],  [1, 0],  [1, 1],
+            [0, 0] // 待機
+        ];
+        
+        const [moveX, moveY] = directions[Math.floor(Math.random() * directions.length)];
+        
+        // 待機の場合は何もしない
+        if (moveX === 0 && moveY === 0) return;
+        
+        const newX = alien.x + moveX;
+        const newY = alien.y + moveY;
+        
+        // 移動先が有効かチェック
+        if (newX >= 0 && newX < gameInstance.gridSize && newY >= 0 && newY < gameInstance.gridSize) {
+            const cellType = gameInstance.grid[newY][newX];
+            
+            if (cellType === 'floor') {
                 gameInstance.grid[alien.y][alien.x] = 'floor';
                 alien.x = newX;
                 alien.y = newY;
