@@ -10,8 +10,24 @@ class UpgradeManager {
         this.inUpgradeMenu = true;
         gameInstance.inUpgradeMenu = true;
         gameInstance.addCombatLog('=== アップグレードメニュー ===');
-        gameInstance.addCombatLog('T,E,Q,H: アクティブ能力');
-        gameInstance.addCombatLog('5,6: パッシブ能力 | >: 次のデッキへ | ESC: キャンセル');
+        gameInstance.addCombatLog(`現在のGold: ${gameInstance.playerManager.player.gold}`);
+        gameInstance.addCombatLog('');
+        
+        // アクティブ能力の表示
+        gameInstance.addCombatLog('🔥 アクティブ能力:');
+        this.showAbilityInfo('teleport', 'T', gameInstance);
+        this.showAbilityInfo('shield', 'E', gameInstance);
+        this.showAbilityInfo('blast', 'Q', gameInstance);
+        this.showAbilityInfo('hack', 'H', gameInstance);
+        gameInstance.addCombatLog('');
+        
+        // パッシブ能力の表示
+        gameInstance.addCombatLog('⚡ パッシブ能力:');
+        this.showAbilityInfo('oxygenRecycler', '5', gameInstance);
+        this.showAbilityInfo('autoMedic', '6', gameInstance);
+        gameInstance.addCombatLog('');
+        
+        gameInstance.addCombatLog('>: 次のデッキへ | ESC: キャンセル');
         
         this.upgradeHandler = (e) => {
             if (!this.inUpgradeMenu) return;
@@ -40,6 +56,35 @@ class UpgradeManager {
         };
         
         document.addEventListener('keydown', this.upgradeHandler);
+    }
+
+    showAbilityInfo(abilityKey, keyBinding, gameInstance) {
+        const ability = ABILITIES[abilityKey];
+        if (!ability) return;
+        
+        const player = gameInstance.playerManager.player;
+        const isUnlocked = player.abilities[abilityKey].unlocked;
+        const canAfford = player.gold >= ability.cost;
+        const isAvailable = gameInstance.floor >= ability.minFloor;
+        
+        let statusIcon = '';
+        let statusText = '';
+        
+        if (isUnlocked) {
+            statusIcon = '✅';
+            statusText = '購入済み';
+        } else if (!isAvailable) {
+            statusIcon = '🔒';
+            statusText = `デッキ${ability.minFloor}+`;
+        } else if (!canAfford) {
+            statusIcon = '💰';
+            statusText = `Gold不足`;
+        } else {
+            statusIcon = '⭐';
+            statusText = '購入可能';
+        }
+        
+        gameInstance.addCombatLog(`[${keyBinding}] ${ability.name} (${ability.cost}G) - ${statusIcon} ${statusText}`);
     }
 
     exitUpgradeMenu(gameInstance) {
