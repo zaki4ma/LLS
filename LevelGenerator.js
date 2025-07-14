@@ -148,6 +148,48 @@ class LevelGenerator {
         if (gameInstance.elevatorPlaced) return;
         
         if (this.rooms.length > 0) {
+            // 十分な大きさの部屋を選択（最低3x3以上）
+            const suitableRooms = this.rooms.filter(room => room.width >= 3 && room.height >= 3);
+            if (suitableRooms.length === 0) {
+                // 適切な部屋がない場合は元の方法にフォールバック
+                this.placeElevatorFallback(gameInstance);
+                return;
+            }
+            
+            const room = suitableRooms[Math.floor(Math.random() * suitableRooms.length)];
+            let x, y;
+            let attempts = 0;
+            let placed = false;
+            
+            // 部屋の壁から1マス離れた場所に配置
+            do {
+                // 部屋の内側の範囲で、壁から1マス離れた場所を選択
+                x = room.x + 1 + Math.floor(Math.random() * (room.width - 2));
+                y = room.y + 1 + Math.floor(Math.random() * (room.height - 2));
+                attempts++;
+                
+                // 配置予定位置が床であることを確認
+                if (gameInstance.grid[y][x] === 'floor') {
+                    // 周囲8マスが通路（corridor）でないことを確認
+                    if (this.isValidElevatorPosition(x, y, gameInstance)) {
+                        gameInstance.grid[y][x] = 'elevator';
+                        gameInstance.elevatorPlaced = true;
+                        gameInstance.addCombatLog('エレベーターが利用可能！ >キーで次のデッキへ');
+                        placed = true;
+                    }
+                }
+            } while (!placed && attempts < 50);
+            
+            // 配置に失敗した場合はフォールバック
+            if (!placed) {
+                this.placeElevatorFallback(gameInstance);
+            }
+        }
+    }
+    
+    // 従来の配置方法（フォールバック）
+    placeElevatorFallback(gameInstance) {
+        if (this.rooms.length > 0) {
             const room = this.rooms[Math.floor(Math.random() * this.rooms.length)];
             let x, y;
             let attempts = 0;
@@ -164,6 +206,46 @@ class LevelGenerator {
                 gameInstance.addCombatLog('エレベーターが利用可能！ >キーで次のデッキへ');
             }
         }
+    }
+    
+    // エレベーター配置位置の妥当性チェック
+    isValidElevatorPosition(x, y, gameInstance) {
+        // 周囲8マスをチェック
+        for (let dy = -1; dy <= 1; dy++) {
+            for (let dx = -1; dx <= 1; dx++) {
+                if (dx === 0 && dy === 0) continue; // 中心は除外
+                
+                const checkX = x + dx;
+                const checkY = y + dy;
+                
+                // 境界チェック
+                if (checkX < 0 || checkX >= this.gridSize || checkY < 0 || checkY >= this.gridSize) {
+                    continue;
+                }
+                
+                // 周囲に通路がある場合は不適切
+                if (this.isCorridorPosition(checkX, checkY, gameInstance)) {
+                    return false;
+                }
+            }
+        }
+        
+        return true;
+    }
+    
+    // 通路位置かどうかの判定
+    isCorridorPosition(x, y, gameInstance) {
+        if (gameInstance.grid[y][x] !== 'floor') return false;
+        
+        // 部屋の中かどうかをチェック
+        for (const room of this.rooms) {
+            if (x >= room.x && x < room.x + room.width &&
+                y >= room.y && y < room.y + room.height) {
+                return false; // 部屋の中なので通路ではない
+            }
+        }
+        
+        return true; // 部屋の外の床 = 通路
     }
 
     getRooms() {

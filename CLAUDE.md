@@ -6,6 +6,26 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ファイルは機能単位で適度なファイルサイズで分けて実装してください。
 
+## TDD開発手法（t-wada流）
+
+### 基本サイクル
+- 🔴 **Red**: 失敗するテストを書く
+- 🟢 **Green**: テストを通す最小限の実装
+- 🔵 **Refactor**: リファクタリング
+
+### 実践原則
+- **小さなステップ**: 一度に1つの機能のみ
+- **仮実装**: テストを通すためにベタ書きでもOK（例：`return 42`）
+- **三角測量**: 2つ目、3つ目のテストケースで一般化する
+- **TODOリスト更新**: 実装中に思いついたことはすぐリストに追加
+- **不安なところから**: 不安な箇所を優先的にテスト
+- **即座にコミット**: テストが通ったらすぐコミット
+
+### TDDコミットルール
+- 🔴 テストを書いたら: `test: add failing test for [feature]`
+- 🟢 テストを通したら: `feat: implement [feature] to pass test`
+- 🔵 リファクタリングしたら: `refactor: [description]`
+
 ## Project Overview
 
 This is a roguelike game project. The codebase is currently empty and ready for initial development.
