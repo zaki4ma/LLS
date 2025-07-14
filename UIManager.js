@@ -5,6 +5,8 @@ class UIManager {
 
     init(gameInstance) {
         this.gameInstance = gameInstance;
+        // グローバル参照を設定
+        window.uiManager = this;
     }
 
     addCombatLog(message) {
@@ -243,7 +245,30 @@ class UIManager {
                 </div>
                 
                 <div style="margin: 20px 0;">
-                    <p style="color: #ccc; font-size: 14px;">スコアがランキングに登録されました！</p>
+                    <h4 style="color: #ffaa00; margin-bottom: 10px;">🏆 ランキング登録</h4>
+                    <p style="color: #ccc; font-size: 12px; margin-bottom: 10px;">名前を入力してください（最大3文字）：</p>
+                    <input type="text" id="player-name-input" maxlength="3" placeholder="PLR" style="
+                        background: #1a1a2e;
+                        color: #ffffff;
+                        border: 1px solid #00ffff;
+                        padding: 10px;
+                        border-radius: 5px;
+                        font-size: 16px;
+                        text-align: center;
+                        width: 80px;
+                        margin: 0 10px;
+                    ">
+                    <button onclick="window.uiManager.registerScore()" style="
+                        background: linear-gradient(135deg, #00ff88 0%, #00cc66 100%);
+                        color: #ffffff;
+                        border: none;
+                        padding: 10px 20px;
+                        border-radius: 5px;
+                        cursor: pointer;
+                        font-weight: bold;
+                        font-size: 14px;
+                        margin: 0 5px;
+                    ">登録</button>
                 </div>
                 
                 <div style="margin-top: 30px;">
@@ -276,6 +301,38 @@ class UIManager {
         `;
         
         this.showModal('ゲームオーバー', gameOverHTML);
+        
+        // スコアデータを保存し、登録ボタンのイベントを設定
+        this.pendingScoreData = scoreData;
+        
+        // 名前入力フィールドにフォーカス
+        setTimeout(() => {
+            const nameInput = document.getElementById('player-name-input');
+            if (nameInput) {
+                nameInput.focus();
+                nameInput.select();
+            }
+        }, 100);
+    }
+
+    registerScore() {
+        const nameInput = document.getElementById('player-name-input');
+        const playerName = nameInput ? nameInput.value.trim() || 'PLR' : 'PLR';
+        
+        if (this.pendingScoreData) {
+            // ランキングに登録
+            const rank = this.gameInstance.rankingManager.addScore(playerName, this.pendingScoreData.score, this.pendingScoreData.floor);
+            
+            // 登録完了メッセージを表示
+            const nameSection = nameInput.parentElement;
+            nameSection.innerHTML = `
+                <p style="color: #00ff88; font-weight: bold; margin: 10px 0;">
+                    🎉 ${playerName} として${rank}位に登録されました！
+                </p>
+            `;
+            
+            this.pendingScoreData = null;
+        }
     }
 
     showModal(title, content) {

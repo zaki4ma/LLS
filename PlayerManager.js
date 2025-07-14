@@ -293,7 +293,7 @@ class PlayerManager {
             gameInstance.addCombatLog('力尽きました...');
             gameInstance.soundManager.playGameOver();
             
-            // ランキングに記録
+            // スコアデータを準備
             const scoreData = {
                 score: gameInstance.currentScore,
                 floor: gameInstance.floor,
@@ -301,7 +301,6 @@ class PlayerManager {
                 totalGold: gameInstance.totalGoldCollected,
                 date: Date.now()
             };
-            gameInstance.rankingManager.addScore(scoreData);
             
             // ゲームオーバーモーダルを表示
             gameInstance.uiManager.showGameOverModal(scoreData);
