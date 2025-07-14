@@ -20,7 +20,6 @@ class UIManager {
     }
 
     updateStatus(gameInstance) {
-        console.log('Updating UI status...');
         const player = gameInstance.playerManager.player;
         
         document.getElementById('player-hp').textContent = Math.max(0, player.hp);
@@ -30,6 +29,34 @@ class UIManager {
         document.getElementById('player-defense').textContent = player.defense;
         document.getElementById('player-critical').textContent = Math.floor(player.criticalChance * 100);
         document.getElementById('player-gold').textContent = player.gold;
+        
+        // 回避率表示の更新（安全性チェック付き）
+        try {
+            if (gameInstance.dodgeSystem && gameInstance.enemyManager && gameInstance.playerManager) {
+                const dodgeChance = gameInstance.dodgeSystem.calculatePlayerDodgeChance(gameInstance);
+                const consecutiveDodges = gameInstance.dodgeSystem.playerConsecutiveDodges;
+                
+                document.getElementById('player-dodge').textContent = dodgeChance.toFixed(1);
+                document.getElementById('consecutive-dodges').textContent = consecutiveDodges;
+                
+                // 連続回避が制限に近づいたら警告色
+                const dodgeElement = document.getElementById('consecutive-dodges');
+                if (consecutiveDodges >= DODGE_SYSTEM.conditions.maxConsecutiveDodges) {
+                    dodgeElement.style.color = '#ff8888';
+                } else {
+                    dodgeElement.style.color = '#ffcc00';
+                }
+            } else {
+                // 初期化中はデフォルト値を表示
+                document.getElementById('player-dodge').textContent = '15.0';
+                document.getElementById('consecutive-dodges').textContent = '0';
+            }
+        } catch (error) {
+            console.warn('Dodge system update error:', error);
+            document.getElementById('player-dodge').textContent = '15.0';
+            document.getElementById('consecutive-dodges').textContent = '0';
+        }
+        
         document.getElementById('player-exp').textContent = player.exp;
         document.getElementById('player-expnext').textContent = player.expToNext;
         document.getElementById('aliens-alive').textContent = gameInstance.aliens.filter(a => a.alive).length;
@@ -44,10 +71,11 @@ class UIManager {
         document.getElementById('exp-fill').style.width = expPercentage + '%';
         
         // 体力バーの更新
-        const healthPercentage = (player.hp / player.maxHp) * 100;
+        const healthPercentage = Math.max(0, Math.min(100, (player.hp / player.maxHp) * 100));
         const healthBarFill = document.getElementById('health-bar-fill');
         if (healthBarFill) {
-            healthBarFill.style.width = healthPercentage + '%';
+            console.log(`Health bar update: ${player.hp}/${player.maxHp} = ${healthPercentage}%`);
+            healthBarFill.style.setProperty('width', healthPercentage + '%', 'important');
             if (healthPercentage <= 25) {
                 healthBarFill.style.background = 'linear-gradient(90deg, #ff0000 0%, #ff4444 50%, #ff0000 100%)';
                 healthBarFill.style.boxShadow = '0 0 10px rgba(255, 0, 0, 0.8)';
@@ -58,13 +86,16 @@ class UIManager {
                 healthBarFill.style.background = 'linear-gradient(90deg, #00ff00 0%, #44ff44 50%, #00ff00 100%)';
                 healthBarFill.style.boxShadow = '0 0 10px rgba(0, 255, 0, 0.5)';
             }
+        } else {
+            console.error('Health bar fill element not found');
         }
         
         // 酸素バーの更新
-        const oxygenPercentage = (player.oxygen / player.maxOxygen) * 100;
+        const oxygenPercentage = Math.max(0, Math.min(100, (player.oxygen / player.maxOxygen) * 100));
         const oxygenBarFill = document.getElementById('oxygen-bar-fill');
         if (oxygenBarFill) {
-            oxygenBarFill.style.width = oxygenPercentage + '%';
+            console.log(`Oxygen bar update: ${player.oxygen}/${player.maxOxygen} = ${oxygenPercentage}%`);
+            oxygenBarFill.style.setProperty('width', oxygenPercentage + '%', 'important');
             oxygenBarFill.classList.remove('warning', 'critical');
             
             if (oxygenPercentage <= 15) {
@@ -74,13 +105,16 @@ class UIManager {
             } else {
                 oxygenBarFill.style.background = 'linear-gradient(90deg, #0088ff 0%, #00aaff 50%, #0088ff 100%)';
             }
+        } else {
+            console.error('Oxygen bar fill element not found');
         }
         
         // 電力バーの更新
-        const powerPercentage = (player.power / player.maxPower) * 100;
+        const powerPercentage = Math.max(0, Math.min(100, (player.power / player.maxPower) * 100));
         const powerBarFill = document.getElementById('power-bar-fill');
         if (powerBarFill) {
-            powerBarFill.style.width = powerPercentage + '%';
+            console.log(`Power bar update: ${player.power}/${player.maxPower} = ${powerPercentage}%`);
+            powerBarFill.style.setProperty('width', powerPercentage + '%', 'important');
             powerBarFill.classList.remove('warning', 'critical');
             
             if (powerPercentage <= 15) {
@@ -90,6 +124,8 @@ class UIManager {
             } else {
                 powerBarFill.style.background = 'linear-gradient(90deg, #ffaa00 0%, #ffcc00 50%, #ffaa00 100%)';
             }
+        } else {
+            console.error('Power bar fill element not found');
         }
         
         // スコア更新
@@ -209,18 +245,25 @@ class UIManager {
 
     updateRangedWeaponsDisplay(gameInstance) {
         const weaponsDisplay = document.getElementById('ranged-weapons-inventory');
-        if (!weaponsDisplay) return;
+        if (!weaponsDisplay) {
+            console.warn('ranged-weapons-inventory element not found');
+            return;
+        }
         
         const inventory = gameInstance.rangedWeaponManager.getWeaponInventory();
+        console.log('Updating weapons display with inventory:', inventory);
+        
         let weaponsHTML = '';
         let hasWeapons = false;
         
-        Object.entries(inventory).forEach(([weaponId, count], index) => {
+        let keyNumber = 1;
+        Object.entries(inventory).forEach(([weaponId, count]) => {
+            console.log(`Processing weapon: ${weaponId}, count: ${count}`);
             if (count > 0) {
                 hasWeapons = true;
                 const weaponData = gameInstance.rangedWeaponManager.getWeaponData(weaponId);
+                console.log(`Weapon data for ${weaponId}:`, weaponData);
                 if (weaponData) {
-                    const keyNumber = index + 1;
                     weaponsHTML += `
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px;">
                             <span style="color: #ff6600;">[${keyNumber}] ${weaponData.icon} ${weaponData.name}</span>
@@ -230,6 +273,9 @@ class UIManager {
                             射程: ${weaponData.range} / 威力: ${weaponData.damage} / 電力: ${weaponData.powerCost}
                         </div>
                     `;
+                    keyNumber++;
+                } else {
+                    console.warn(`No weapon data found for ${weaponId}`);
                 }
             }
         });
@@ -238,6 +284,7 @@ class UIManager {
             weaponsHTML = '<div style="color: #888;">武器なし</div>';
         }
         
+        console.log('Final weapons HTML:', weaponsHTML);
         weaponsDisplay.innerHTML = weaponsHTML;
     }
 
@@ -268,8 +315,11 @@ class UIManager {
                     <p style="color: #ccc; margin: 5px 0; font-size: 13px;">エレベーターで対応する数字キーを押して購入：</p>
                     <div style="font-size: 12px;">
                         <div style="margin: 8px 0; padding: 8px; border: 1px solid #333; border-radius: 4px;">
+                            <strong style="color: #ffaa88;">中級能力 (デッキ3+)</strong><br>
+                            <span style="color: #ccc;">• 酸素リサイクラー [5] - 300 Gold</span>
+                        </div>
+                        <div style="margin: 8px 0; padding: 8px; border: 1px solid #333; border-radius: 4px;">
                             <strong style="color: #ff8888;">上級能力 (デッキ6+)</strong><br>
-                            <span style="color: #ccc;">• 酸素リサイクラー [5] - 400 Gold</span><br>
                             <span style="color: #ccc;">• オートメディック [6] - 350 Gold</span>
                         </div>
                     </div>

@@ -125,6 +125,7 @@
         .health-bar-fill {
             background: linear-gradient(90deg, #00ff00 0%, #44ff44 50%, #00ff00 100%);
             height: 100%;
+            width: 0%;
             transition: width 0.3s ease;
             box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
         }
@@ -158,6 +159,7 @@
         .oxygen-bar-fill {
             background: linear-gradient(90deg, #0088ff 0%, #00aaff 50%, #0088ff 100%);
             height: 100%;
+            width: 0%;
             transition: width 0.3s ease;
             box-shadow: 0 0 10px rgba(0, 170, 255, 0.5);
         }
@@ -209,6 +211,7 @@
         .power-bar-fill {
             background: linear-gradient(90deg, #ffaa00 0%, #ffcc00 50%, #ffaa00 100%);
             height: 100%;
+            width: 0%;
             transition: width 0.3s ease;
             box-shadow: 0 0 10px rgba(255, 170, 0, 0.5);
         }
@@ -758,6 +761,40 @@
         .hidden {
             display: none !important;
         }
+        
+        /* 回避エフェクト用アニメーション */
+        @keyframes dodgeEffect {
+            0% {
+                transform: scale(0.5);
+                opacity: 1;
+            }
+            50% {
+                transform: scale(1.2);
+                opacity: 0.8;
+            }
+            100% {
+                transform: scale(1.5);
+                opacity: 0;
+            }
+        }
+        
+        .dodge-effect {
+            box-shadow: 0 0 10px currentColor;
+            animation: dodgeEffect 0.6s ease-out;
+        }
+        
+        /* 回避テキストのスタイル */
+        .floating-text.dodge {
+            color: #00ff88;
+            font-weight: bold;
+            text-shadow: 0 0 5px #00ff88;
+        }
+        
+        .floating-text.miss {
+            color: #ffff00;
+            font-weight: bold;
+            text-shadow: 0 0 5px #ffff00;
+        }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
     <script src="constants.js"></script>
@@ -772,6 +809,7 @@
     <script src="UpgradeManager.js"></script>
     <script src="RangedWeaponManager.js"></script>
     <script src="CommunicationManager.js"></script>
+    <script src="DodgeSystem.js"></script>
     <script src="GameCore.js"></script>
 </head>
 <body>
@@ -797,7 +835,7 @@
                 <div class="health-bar-container">
                     <div style="color: #00ff00; margin-bottom: 5px; font-weight: bold;">体力 (HP)</div>
                     <div class="health-bar">
-                        <div class="health-bar-fill" id="health-bar-fill" style="width: 100%"></div>
+                        <div class="health-bar-fill" id="health-bar-fill"></div>
                         <div class="health-bar-text"><span id="player-hp">100</span> / <span id="player-maxhp">100</span></div>
                     </div>
                 </div>
@@ -806,14 +844,14 @@
                 <div class="oxygen-bar-container">
                     <div style="color: #00aaff; margin-bottom: 5px; font-weight: bold;">酸素 (O₂)</div>
                     <div class="oxygen-bar">
-                        <div class="oxygen-bar-fill" id="oxygen-bar-fill" style="width: 100%"></div>
+                        <div class="oxygen-bar-fill" id="oxygen-bar-fill"></div>
                         <div class="oxygen-bar-text"><span id="player-oxygen">100</span> / <span id="player-maxoxygen">100</span></div>
                     </div>
                 </div>
                 <div class="resource-bar">
                     <div class="bar-label">⚡ 電力</div>
                     <div class="bar-container power-bar">
-                        <div class="power-bar-fill" id="power-bar-fill" style="width: 100%"></div>
+                        <div class="power-bar-fill" id="power-bar-fill"></div>
                         <div class="power-bar-text"><span id="player-power">100</span> / <span id="player-maxpower">100</span></div>
                     </div>
                 </div>
@@ -826,6 +864,10 @@
                 </div>
                 <div class="status-row">
                     <span style="color: #ff8800;">クリティカル: <span id="player-critical">15</span>%</span>
+                    <span style="color: #00ff88;">回避: <span id="player-dodge">15</span>%</span>
+                </div>
+                <div class="status-row">
+                    <span style="color: #ffcc00;">連続回避: <span id="consecutive-dodges">0</span>回</span>
                 </div>
                 <div class="exp-bar">
                     <div class="exp-fill" id="exp-fill" style="width: 0%"></div>

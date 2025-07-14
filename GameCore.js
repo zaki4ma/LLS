@@ -38,6 +38,7 @@ class RoguelikeGame {
         this.uiManager = new UIManager();
         this.upgradeManager = new UpgradeManager();
         this.rangedWeaponManager = new RangedWeaponManager();
+        this.dodgeSystem = new DodgeSystem(); // 回避システムの初期化
         
         // 通信システムを再度有効化
         this.communicationManager = new CommunicationManager();
@@ -132,6 +133,12 @@ class RoguelikeGame {
             this.uiManager.updateStatus(this);
             console.log('Game initialization completed');
             
+            // 初期状態でバーの表示を強制更新
+            setTimeout(() => {
+                console.log('Force updating UI after initialization');
+                this.uiManager.updateStatus(this);
+            }, 100);
+            
         } catch (error) {
             console.error('Game initialization error:', error);
             console.error('Error stack:', error.stack);
@@ -144,7 +151,11 @@ class RoguelikeGame {
 
     setupEventListeners() {
         document.addEventListener('keydown', (e) => {
-            if (this.gameOver || this.inUpgradeMenu) return;
+            console.log('Key pressed:', e.key, 'GameOver:', this.gameOver, 'InUpgradeMenu:', this.inUpgradeMenu);
+            if (this.gameOver || this.inUpgradeMenu) {
+                console.log('Key event blocked by game state');
+                return;
+            }
             
             // ゲーム関連のキーでブラウザのデフォルト動作を無効化
             const gameKeys = [' ', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'w', 'W', 'a', 'A', 's', 'S', 'd', 'D', 't', 'T', 'e', 'E', 'q', 'Q', 'h', 'H', '1', '2', '3', 'r', 'R'];
@@ -225,8 +236,14 @@ class RoguelikeGame {
             }
             
             if (dx !== 0 || dy !== 0) {
-                if (this.playerManager.movePlayer(dx, dy, this)) {
+                console.log('Movement attempted:', dx, dy);
+                const moveResult = this.playerManager.movePlayer(dx, dy, this);
+                console.log('Move result:', moveResult);
+                if (moveResult) {
+                    console.log('Calling processTurn due to movement');
                     this.processTurn();
+                } else {
+                    console.log('Movement failed, no turn processing');
                 }
             }
         });
@@ -251,9 +268,12 @@ class RoguelikeGame {
     }
 
     processTurn() {
+        console.log('=== GameCore.processTurn called ===');
+        console.log('Turn count:', this.turnCount, '->', this.turnCount + 1);
         this.turnCount++;
         
         // プレイヤーのターン処理
+        console.log('Calling playerManager.processTurn...');
         this.playerManager.processTurn(this);
         
         if (this.gameOver) return;
@@ -283,8 +303,11 @@ class RoguelikeGame {
     }
 
     selectRangedWeapon(weaponIndex) {
+        console.log('Selecting ranged weapon index:', weaponIndex);
         const weaponIds = Object.keys(this.rangedWeaponManager.weaponInventory);
+        console.log('Available weapon IDs:', weaponIds);
         const selectedWeaponId = weaponIds[weaponIndex];
+        console.log('Selected weapon ID:', selectedWeaponId);
         
         if (!selectedWeaponId) {
             this.addCombatLog('その武器スロットは空です');
@@ -292,6 +315,8 @@ class RoguelikeGame {
         }
         
         const inventory = this.rangedWeaponManager.getWeaponInventory();
+        console.log('Weapon inventory:', inventory);
+        console.log('Selected weapon count:', inventory[selectedWeaponId]);
         if (inventory[selectedWeaponId] <= 0) {
             this.addCombatLog('その武器の残弾がありません');
             return;

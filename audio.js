@@ -483,6 +483,46 @@ class SoundManager {
         }
     }
     
+    // プレイヤー回避音
+    playPlayerDodge() {
+        if (!this.enabled || !this.initialized) return;
+        try {
+            const now = Tone.now();
+            // 上昇音階で「かわした」感を演出
+            this.synths.collect.triggerAttackRelease('C5', '32n', now, 0.15);
+            this.synths.collect.triggerAttackRelease('E5', '32n', now + 0.05, 0.12);
+            this.synths.collect.triggerAttackRelease('G5', '32n', now + 0.1, 0.1);
+        } catch (e) {
+            console.warn('Sound playback error:', e);
+        }
+    }
+    
+    // 敵回避音
+    playEnemyDodge() {
+        if (!this.enabled || !this.initialized) return;
+        try {
+            const now = Tone.now();
+            // 短い「シュッ」という音
+            this.synths.alert.triggerAttackRelease('A4', '16n', now, 0.1);
+        } catch (e) {
+            console.warn('Sound playback error:', e);
+        }
+    }
+    
+    // 汎用回避音メソッド（後方互換性）
+    playSound(soundName) {
+        switch (soundName) {
+            case 'player_dodge':
+                this.playPlayerDodge();
+                break;
+            case 'dodge':
+                this.playEnemyDodge();
+                break;
+            default:
+                console.warn('Unknown sound:', soundName);
+        }
+    }
+    
     setBGMVolume(value) {
         this.bgmVolume = value;
         if (this.synths.bgm) {

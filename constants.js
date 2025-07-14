@@ -208,6 +208,33 @@ const ABILITIES = {
         description: 'HP50%未満で自動回復',
         category: 'advanced',
         passive: true
+    },
+    agilityTraining: {
+        name: '敏捷性訓練',
+        key: null,
+        cost: 150,
+        minFloor: 2,
+        description: '回避率+5%',
+        category: 'intermediate',
+        passive: true
+    },
+    reflexes: {
+        name: '反射神経強化',
+        key: null,
+        cost: 200,
+        minFloor: 4,
+        description: '連続回避制限+1回',
+        category: 'advanced',
+        passive: true
+    },
+    combatAwareness: {
+        name: '戦闘感覚',
+        key: null,
+        cost: 180,
+        minFloor: 3,
+        description: '包囲時の回避率減少を軽減',
+        category: 'intermediate',
+        passive: true
     }
 };
 
@@ -256,6 +283,50 @@ const RANGED_WEAPONS = {
         foundIn: ["bridge", "emergency_locker"],
         icon: "🔴",
         soundEffect: "laser_beam"
+    }
+};
+
+// 回避システム定義
+const DODGE_SYSTEM = {
+    // プレイヤー基本回避率
+    player: {
+        baseChance: 15, // 基本15%
+        maxChance: 45,  // 最大45%まで
+        perLevelBonus: 2, // レベルアップで+2%
+        criticalImmune: false, // クリティカルでも回避可能
+    },
+    
+    // 敵タイプ別回避率
+    enemies: {
+        BASIC: { dodgeChance: 5 },      // 基本敵：5%
+        STALKER: { dodgeChance: 15 },   // 徘徊型：15%（素早い）
+        CHARGER: { dodgeChance: 0 },    // 突進型：0%（鈍重）
+        GUARDIAN: { dodgeChance: 8 },   // 守護型：8%（重装甲）
+        HUNTER: { dodgeChance: 20 },    // 巡回型：20%（非常に素早い）
+        SCOUT: { dodgeChance: 25 },     // 偵察型：25%（最高回避）
+        ASSASSIN: { dodgeChance: 30 },  // 暗殺者：30%（極めて素早い）
+        BERSERKER: { dodgeChance: 5 },  // 狂戦士：5%（防御より攻撃）
+        PSYCHIC: { dodgeChance: 12 },   // 精神攻撃：12%（中程度）
+        PHANTOM: { dodgeChance: 35 },   // 幽霊型：35%（非物質的）
+        OVERLORD: { dodgeChance: 10 },  // 指揮官：10%（重装甲）
+        NIGHTMARE: { dodgeChance: 20 }, // 悪夢：20%（変幻自在）
+        APEX: { dodgeChance: 25 }       // 究極体：25%（全能力保持）
+    },
+    
+    // 特殊条件
+    conditions: {
+        // クリティカル攻撃の扱い
+        criticalIgnoresDodge: true, // クリティカルは必中
+        
+        // 連続回避制限（連続で回避されるフラストレーション対策）
+        maxConsecutiveDodges: 2, // 最大2回連続まで
+        consecutivePenalty: 0.5, // 3回目以降は回避率半減
+        
+        // 包囲効果
+        surroundedPenalty: 0.3, // 複数敵に囲まれると回避率30%減
+        
+        // 負傷効果
+        injuredPenalty: 0.2 // HP50%以下で回避率20%減
     }
 };
 
