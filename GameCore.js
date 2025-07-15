@@ -165,7 +165,7 @@ class RoguelikeGame {
             }
             
             // ゲーム関連のキーでブラウザのデフォルト動作を無効化
-            const gameKeys = [' ', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'w', 'W', 'a', 'A', 's', 'S', 'd', 'D', 't', 'T', 'e', 'E', 'q', 'Q', 'h', 'H', '1', '2', '3', 'r', 'R', '=', '-', 'c', 'C', 'f', 'F', 'g', 'G'];
+            const gameKeys = [' ', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'w', 'W', 'a', 'A', 's', 'S', 'd', 'D', 't', 'T', 'e', 'E', 'q', 'Q', 'h', 'H', '1', '2', '3', 'r', 'R', '=', '-', 'c', 'C', 'f', 'F', 'g', 'G', 'k', 'K'];
             if (gameKeys.includes(e.key)) {
                 e.preventDefault();
             }
@@ -272,6 +272,13 @@ class RoguelikeGame {
                     // チートモード時：無敵モード切り替え（Gキー）
                     if (this.cheatMode) {
                         this.toggleGodMode();
+                    }
+                    return;
+                case 'k':
+                case 'K':
+                    // チートモード時：敵全滅（Kキー）
+                    if (this.cheatMode) {
+                        this.cheatKillAllEnemies();
                     }
                     return;
             }
@@ -787,7 +794,8 @@ class RoguelikeGame {
     toggleCheatMode() {
         this.cheatMode = !this.cheatMode;
         if (this.cheatMode) {
-            this.addCombatLog('🔧 チートモード有効 - F:デッキ20移動, G:無敵モード');
+            this.addCombatLog('🔧 チートモード有効');
+            this.addCombatLog('F:デッキ20移動, G:無敵モード, K:敵全滅');
             // チート時の視覚的表示
             document.body.style.border = '3px solid #ff0000';
         } else {
@@ -836,5 +844,61 @@ class RoguelikeGame {
             this.addCombatLog('⚡ 無敵モード無効');
         }
         this.uiManager.updateStatus(this);
+    }
+    
+    // 敵全滅チート
+    cheatKillAllEnemies() {
+        if (!this.aliens || this.aliens.length === 0) {
+            this.addCombatLog('🗡️ チート: 敵が存在しません');
+            return;
+        }
+        
+        const enemyCount = this.aliens.filter(alien => alien.alive).length;
+        
+        if (enemyCount === 0) {
+            this.addCombatLog('🗡️ チート: 生存中の敵がいません');
+            return;
+        }
+        
+        // 全ての生存中の敵を撃破
+        this.aliens.forEach(alien => {
+            if (alien.alive) {
+                // エフェクト表示
+                this.renderManager.showFloatingText(alien.x, alien.y, 'CHEAT KILL!', '#ff0000');
+                this.renderManager.showAttackFlash(alien.x, alien.y);
+                
+                // 敵を無効化
+                alien.alive = false;
+                this.grid[alien.y][alien.x] = 'floor';
+                
+                // 経験値とゴールドを獲得
+                this.playerManager.player.exp += alien.expReward;
+                this.playerManager.player.gold += alien.goldReward;
+                this.aliensKilled++;
+                this.totalGoldCollected += alien.goldReward;
+                this.encounteredEnemies.add(alien.type);
+                
+                // 獲得エフェクト
+                this.renderManager.showFloatingText(alien.x, alien.y, `EXP+${alien.expReward}`, '#00aaff');
+                this.renderManager.showFloatingText(alien.x, alien.y, `Gold+${alien.goldReward}`, '#ffaa00');
+            }
+        });
+        
+        // 生存中の敵のみを削除
+        this.aliens = this.aliens.filter(alien => !alien.alive);
+        
+        this.addCombatLog(`🗡️ チート: ${enemyCount}体の敵を全滅させました！`);
+        
+        // レベルアップチェック
+        this.playerManager.checkLevelUp(this);
+        
+        // 画面更新
+        this.renderManager.render(this);
+        this.uiManager.updateStatus(this);
+        
+        // 効果音
+        if (this.soundManager) {
+            this.soundManager.playAttack();
+        }
     }
 }
