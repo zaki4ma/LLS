@@ -39,6 +39,7 @@ class RoguelikeGame {
         this.upgradeManager = new UpgradeManager();
         this.rangedWeaponManager = new RangedWeaponManager();
         this.dodgeSystem = new DodgeSystem(); // 回避システムの初期化
+        this.qualitativeUpgradeManager = new QualitativeUpgradeManager(); // 質的アップグレードシステム
         
         // 通信システムを再度有効化
         this.communicationManager = new CommunicationManager();
@@ -57,6 +58,9 @@ class RoguelikeGame {
         
         // 通信システムをグローバルに設定
         window.communicationManager = this.communicationManager;
+        
+        // 質的アップグレードアイコンのクリックイベントを設定
+        this.setupUpgradeClickEvents();
     }
 
     // 初期化とサウンド関連のメソッド
@@ -244,6 +248,8 @@ class RoguelikeGame {
                     this.processTurn();
                 } else {
                     console.log('Movement failed, no turn processing');
+                    // 移動失敗でもUIは更新
+                    this.uiManager.updateStatus(this);
                 }
             }
         });
@@ -411,5 +417,168 @@ class RoguelikeGame {
         } else {
             this.addCombatLog(`攻撃失敗: ${result.message}`);
         }
+    }
+    
+    setupUpgradeClickEvents() {
+        // 質的アップグレードアイコンにクリックイベントを設定
+        const upgradeIcons = ['chain-strike-status', 'counter-attack-status', 'auto-repair-status'];
+        upgradeIcons.forEach(id => {
+            const element = document.getElementById(id);
+            if (element) {
+                element.addEventListener('click', () => {
+                    this.uiManager.openUpgradeModal(this);
+                });
+            }
+        });
+    }
+    
+    // ターン処理（既存のprocessTurnをQualitativeUpgradeManagerと統合）
+    processTurn() {
+        if (this.gameOver) return;
+        
+        this.turnCount++;
+        
+        // プレイヤーのターン処理
+        this.playerManager.processTurn(this);
+        
+        // 質的アップグレードのターン終了処理
+        this.qualitativeUpgradeManager.onTurnEnd(this);
+        
+        // 敵のターン処理
+        this.enemyManager.moveAliens(this);
+        
+        // 描画更新
+        this.renderManager.render(this);
+        
+        // UI状態更新
+        this.uiManager.updateStatus(this);
+        
+        // ゲームオーバー確認
+        if (this.playerManager.player.hp <= 0) {
+            this.gameOver = true;
+            this.uiManager.showGameOverModal(this);
+        }
+    }
+    
+    // フロア移動時の処理
+    moveToNextFloor() {
+        if (this.floor >= 20) {
+            this.handleGameComplete();
+            return;
+        }
+        
+        // フロア移動前の処理
+        this.qualitativeUpgradeManager.onFloorChange(this);
+        
+        this.floor++;
+        this.maxFloorReached = Math.max(this.maxFloorReached, this.floor);
+        
+        // 新しいフロアの生成
+        this.init();
+        
+        // プレイヤーの配置
+        this.playerManager.placePlayer(this);
+        
+        // 敵の配置
+        this.enemyManager.placeAliens(this);
+        
+        // アイテムの配置
+        this.itemManager.generateItems(this);
+        
+        // 描画更新
+        this.renderManager.render(this);
+        
+        // 通信イベントのチェック
+        if (this.communicationManager) {
+            this.communicationManager.checkForFloorEvent(this.floor, this);
+        }
+        
+        // BGM更新
+        if (this.soundManager) {
+            this.soundManager.updateBGMForDeck(this.floor);
+        }
+        
+        this.addCombatLog(`=== デッキ ${this.floor} ===`);
+    }
+    
+    // 敵撃破時の処理（質的アップグレードとの統合）
+    onEnemyKilled(enemy, damageDealt) {
+        // 統計更新
+        this.aliensKilled++;
+        this.encounteredEnemies.add(enemy.type);
+        
+        // 質的アップグレードの敵撃破処理
+        this.qualitativeUpgradeManager.onEnemyKilled(enemy, damageDealt, this);
+        
+        // ゴールドドロップ
+        const goldDropped = Math.floor(Math.random() * 15) + 5;
+        this.playerManager.player.gold += goldDropped;
+        this.totalGoldCollected += goldDropped;
+        
+        this.addCombatLog(`${enemy.name}を撃破！ ゴールド+${goldDropped}`);
+        
+        // 音響効果
+        if (this.soundManager) {
+            this.soundManager.playEnemyDeath();
+        }
+    }
+    
+    // プレイヤー被攻撃時の処理（質的アップグレードとの統合）
+    onPlayerAttacked(attacker, damage) {
+        // 質的アップグレード（反撃）の処理
+        const counterAttackTriggered = this.qualitativeUpgradeManager.onPlayerAttacked(attacker, this);
+        
+        if (counterAttackTriggered) {
+            // 反撃が発動した場合、敵が死亡していれば削除
+            if (attacker.hp <= 0) {
+                const index = this.aliens.indexOf(attacker);
+                if (index > -1) {
+                    this.aliens.splice(index, 1);
+                    this.onEnemyKilled(attacker, 0); // 反撃による撃破
+                }
+            }
+        }
+    }
+    
+    // ゲーム完了時の処理
+    handleGameComplete() {
+        this.gameOver = true;
+        this.addCombatLog('=== ミッション完了！ ===');
+        this.addCombatLog('エンジンルームに到達しました！');
+        
+        // 最終スコア計算
+        this.calculateFinalScore();
+        
+        // ランキング保存
+        this.rankingManager.saveScore({
+            score: this.currentScore,
+            floor: this.floor,
+            aliensKilled: this.aliensKilled,
+            totalGold: this.totalGoldCollected,
+            completedGame: true,
+            date: new Date().toISOString()
+        });
+        
+        // 完了モーダル表示
+        this.uiManager.showGameCompleteModal(this);
+    }
+    
+    // セーブデータの統合
+    getSaveData() {
+        return {
+            floor: this.floor,
+            turnCount: this.turnCount,
+            playerData: this.playerManager.getSaveData(),
+            qualitativeUpgrades: this.qualitativeUpgradeManager.getSaveData(),
+            // 他のセーブデータ...
+        };
+    }
+    
+    // ロードデータの統合
+    loadSaveData(data) {
+        if (data.qualitativeUpgrades) {
+            this.qualitativeUpgradeManager.loadSaveData(data.qualitativeUpgrades);
+        }
+        // 他のロード処理...
     }
 }

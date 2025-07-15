@@ -212,6 +212,9 @@ class RangedWeaponManager {
                 gameInstance.aliensKilled++;
                 gameInstance.encounteredEnemies.add(enemy.type);
                 
+                // 質的アップグレード：チェインストライク判定
+                gameInstance.qualitativeUpgradeManager.onEnemyKilled(enemy, damage, gameInstance);
+                
                 // 経験値・ゴールドエフェクト
                 gameInstance.renderManager.showFloatingText(enemy.x, enemy.y, `EXP+${enemy.expReward}`, '#00aaff');
                 gameInstance.renderManager.showFloatingText(enemy.x, enemy.y, `Gold+${enemy.goldReward}`, '#ffaa00');

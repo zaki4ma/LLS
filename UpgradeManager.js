@@ -30,6 +30,13 @@ class UpgradeManager {
         this.showAbilityInfo('reflexes', '9', gameInstance);
         gameInstance.addCombatLog('');
         
+        // 質的アップグレードの表示
+        gameInstance.addCombatLog('⭐ 特殊能力:');
+        this.showQualitativeUpgradeInfo('chain_strike', 'C', gameInstance);
+        this.showQualitativeUpgradeInfo('counter_attack', 'X', gameInstance);
+        this.showQualitativeUpgradeInfo('auto_repair', 'R', gameInstance);
+        gameInstance.addCombatLog('');
+        
         gameInstance.addCombatLog('>: 次のデッキへ | ESC: キャンセル');
         
         this.upgradeHandler = (e) => {
@@ -55,6 +62,21 @@ class UpgradeManager {
                 case '9':
                     // 反射神経強化
                     this.purchasePassiveAbility('reflexes', gameInstance);
+                    break;
+                case 'c':
+                case 'C':
+                    // チェインストライク
+                    this.purchaseQualitativeUpgrade('chain_strike', gameInstance);
+                    break;
+                case 'x':
+                case 'X':
+                    // カウンターアタック
+                    this.purchaseQualitativeUpgrade('counter_attack', gameInstance);
+                    break;
+                case 'r':
+                case 'R':
+                    // オートリペア
+                    this.purchaseQualitativeUpgrade('auto_repair', gameInstance);
                     break;
                 case '>':
                     // デッキ20では勝利条件
@@ -128,7 +150,21 @@ class UpgradeManager {
         }
         this.inUpgradeMenu = false;
         gameInstance.inUpgradeMenu = false;
-        console.log('Upgrade menu state cleared');
+        
+        // プレイヤーがエレベーター上にいる場合は状態を保持
+        if (gameInstance.playerManager.player.onElevator) {
+            console.log('Player is on elevator, maintaining elevator state');
+            // エレベーター位置にプレイヤーがいることを確認
+            const playerX = gameInstance.playerManager.player.x;
+            const playerY = gameInstance.playerManager.player.y;
+            if (gameInstance.grid[playerY][playerX] === 'player') {
+                gameInstance.grid[playerY][playerX] = 'elevator';
+            }
+        }
+        
+        // 描画を更新
+        gameInstance.renderManager.render(gameInstance);
+        console.log('Upgrade menu state cleared and rendering updated');
     }
 
     purchasePassiveAbility(abilityKey, gameInstance) {
@@ -273,6 +309,9 @@ class UpgradeManager {
         // 通信システムのフロア進行イベント
         gameInstance.communicationManager.checkTriggers(gameInstance);
         
+        // 質的アップグレード：フロア移動時の処理
+        gameInstance.qualitativeUpgradeManager.onFloorChange(gameInstance);
+        
         // マップを表示し、ステータスを更新
         gameInstance.renderManager.render(gameInstance);
         gameInstance.uiManager.updateStatus(gameInstance);
@@ -289,5 +328,119 @@ class UpgradeManager {
         console.log('UpgradeManager.inUpgradeMenu:', this.inUpgradeMenu);
         console.log('GameInstance.inUpgradeMenu:', gameInstance.inUpgradeMenu);
         console.log('UpgradeHandler exists:', !!this.upgradeHandler);
+    }
+    
+    // 質的アップグレード情報表示
+    showQualitativeUpgradeInfo(upgradeId, keyBinding, gameInstance) {
+        const upgrade = QUALITATIVE_UPGRADES[upgradeId];
+        if (!upgrade) return;
+        
+        const currentLevel = gameInstance.qualitativeUpgradeManager.purchasedUpgrades[upgradeId];
+        const player = gameInstance.playerManager.player;
+        
+        let statusIcon = '';
+        let statusText = '';
+        let nextLevelInfo = '';
+        
+        if (currentLevel >= upgrade.levels.length) {
+            statusIcon = '🌟';
+            statusText = 'MAX';
+            nextLevelInfo = `(Lv.${currentLevel})`;
+        } else {
+            const nextLevel = upgrade.levels[currentLevel];
+            const canAfford = player.gold >= nextLevel.cost;
+            const isAvailable = gameInstance.floor >= nextLevel.unlockFloor;
+            
+            if (!isAvailable) {
+                statusIcon = '🔒';
+                statusText = `デッキ${nextLevel.unlockFloor}+`;
+            } else if (!canAfford) {
+                statusIcon = '💰';
+                statusText = `Gold不足`;
+            } else {
+                statusIcon = '⭐';
+                statusText = '購入可能';
+            }
+            
+            nextLevelInfo = currentLevel > 0 ? 
+                `(Lv.${currentLevel}→${currentLevel + 1}, ${nextLevel.cost}G)` : 
+                `(${nextLevel.cost}G)`;
+        }
+        
+        gameInstance.addCombatLog(`[${keyBinding}] ${upgrade.name} ${nextLevelInfo} - ${statusIcon} ${statusText}`);
+        
+        // 現在のレベルがある場合は効果も表示
+        if (currentLevel > 0) {
+            const currentLevelData = upgrade.levels[currentLevel - 1];
+            gameInstance.addCombatLog(`  現在: ${currentLevelData.description}`);
+        }
+    }
+    
+    // 質的アップグレード購入
+    purchaseQualitativeUpgrade(upgradeId, gameInstance) {
+        const result = gameInstance.qualitativeUpgradeManager.purchaseUpgrade(upgradeId, gameInstance);
+        
+        if (result.success) {
+            gameInstance.addCombatLog(`✨ ${result.message}`);
+            
+            // 購入成功時の特別エフェクト
+            gameInstance.renderManager.showFloatingText(
+                gameInstance.playerManager.player.x,
+                gameInstance.playerManager.player.y,
+                "UPGRADE!", '#ffaa00'
+            );
+            
+            if (gameInstance.soundManager) {
+                gameInstance.soundManager.playSound('upgrade_purchased');
+            }
+            
+            // ステータス更新
+            gameInstance.uiManager.updateStatus(gameInstance);
+            
+            // メニューを再表示して最新情報を反映
+            this.refreshUpgradeMenu(gameInstance);
+        } else {
+            gameInstance.addCombatLog(`❌ ${result.message}`);
+        }
+    }
+    
+    // アップグレードメニューの再表示
+    refreshUpgradeMenu(gameInstance) {
+        // 現在の戦闘ログをクリア
+        const combatLogElement = document.getElementById('combat-log');
+        if (combatLogElement) {
+            combatLogElement.innerHTML = '';
+        }
+        
+        // メニューを再表示
+        gameInstance.addCombatLog('=== アップグレードメニュー ===');
+        gameInstance.addCombatLog(`現在のGold: ${gameInstance.playerManager.player.gold}`);
+        gameInstance.addCombatLog('');
+        
+        // アクティブ能力の表示
+        gameInstance.addCombatLog('🔥 アクティブ能力:');
+        this.showAbilityInfo('teleport', 'T', gameInstance);
+        this.showAbilityInfo('shield', 'E', gameInstance);
+        this.showAbilityInfo('blast', 'Q', gameInstance);
+        this.showAbilityInfo('hack', 'H', gameInstance);
+        gameInstance.addCombatLog('');
+        
+        // パッシブ能力の表示
+        gameInstance.addCombatLog('⚡ パッシブ能力:');
+        this.showAbilityInfo('oxygenRecycler', '5', gameInstance);
+        this.showAbilityInfo('autoMedic', '6', gameInstance);
+        this.showAbilityInfo('agilityTraining', '7', gameInstance);
+        this.showAbilityInfo('combatAwareness', '8', gameInstance);
+        this.showAbilityInfo('reflexes', '9', gameInstance);
+        gameInstance.addCombatLog('');
+        
+        // 質的アップグレードの表示
+        gameInstance.addCombatLog('⭐ 特殊能力:');
+        this.showQualitativeUpgradeInfo('chain_strike', 'C', gameInstance);
+        this.showQualitativeUpgradeInfo('counter_attack', 'X', gameInstance);
+        this.showQualitativeUpgradeInfo('auto_repair', 'R', gameInstance);
+        gameInstance.addCombatLog('');
+        
+        gameInstance.addCombatLog('>: 次のデッキへ | ESC: キャンセル');
     }
 }

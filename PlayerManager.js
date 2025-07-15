@@ -18,16 +18,26 @@ class PlayerManager {
                 reflexes: { unlocked: false, passive: true },
                 combatAwareness: { unlocked: false, passive: true }
             },
+            shields: 0, // 質的アップグレード用のシールド数
             shieldActive: false,
             shieldDuration: 0, // シールドの残りターン数
             facing: 'down', // プレイヤーの向き: 'up', 'down', 'left', 'right'
             dodgeBonus: 0, // 装備やアップグレードによる回避ボーナス
             onElevator: false // エレベーター上にいるかどうか
         };
+        // 質的アップグレード関連の状態
+        this.hasExtraAction = false;
+        this.chainBonusDamage = 0;
     }
 
     getPlayer() {
         return this.player;
+    }
+    
+    placePlayer(gameInstance) {
+        // プレイヤーの位置はLevelGeneratorで設定されるため、ここでは何もしない
+        // 必要に応じて追加の初期化処理を行う
+        console.log('Player placed at:', this.player.x, this.player.y);
     }
 
     movePlayer(dx, dy, gameInstance) {
@@ -99,11 +109,20 @@ class PlayerManager {
                 return false; // エレベーターはターン処理しない
             }
             
-            gameInstance.grid[this.player.y][this.player.x] = 'floor';
+            // 現在の位置がエレベーターの場合、移動後にエレベーターを復元
+            const wasOnElevator = this.player.onElevator;
+            const oldX = this.player.x;
+            const oldY = this.player.y;
+            
+            gameInstance.grid[this.player.y][this.player.x] = wasOnElevator ? 'elevator' : 'floor';
             this.player.x = newX;
             this.player.y = newY;
             this.player.onElevator = false; // 通常移動時はエレベーター状態をリセット
             gameInstance.grid[this.player.y][this.player.x] = 'player';
+            
+            if (wasOnElevator) {
+                console.log('Player moved off elevator, elevator restored at:', oldX, oldY);
+            }
             
             console.log('Player moved successfully to:', newX, newY);
             return true; // 移動したのでターン処理を行う
@@ -138,6 +157,11 @@ class PlayerManager {
         // 基本ダメージ計算
         let damage = Math.max(1, this.player.attack - alien.defense);
         
+        // 連続攻撃ボーナスダメージを追加
+        if (this.chainBonusDamage > 0) {
+            damage += this.chainBonusDamage;
+        }
+        
         // クリティカル時のダメージ倍率適用
         if (isCritical) {
             damage = Math.floor(damage * this.player.criticalMultiplier);
@@ -169,12 +193,20 @@ class PlayerManager {
             gameInstance.encounteredEnemies.add(alien.type);
             gameInstance.addCombatLog(`${alien.typeData.name}を倒した！ EXP+${alien.expReward}, Gold+${alien.goldReward}`);
             
+            // 質的アップグレード：チェインストライク判定
+            gameInstance.qualitativeUpgradeManager.onEnemyKilled(alien, damage, gameInstance);
+            
             // 経験値・ゴールドエフェクト
             gameInstance.renderManager.showFloatingText(alien.x, alien.y, `EXP+${alien.expReward}`, '#00aaff');
             gameInstance.renderManager.showFloatingText(alien.x, alien.y, `Gold+${alien.goldReward}`, '#ffaa00');
             
             this.checkLevelUp(gameInstance);
         }
+        
+        // 連続攻撃ボーナスダメージをリセット
+        this.chainBonusDamage = 0;
+        
+        return { hit: true, damage, critical: isCritical, killed: alien.hp <= 0 };
     }
 
     checkLevelUp(gameInstance) {
@@ -453,6 +485,12 @@ class PlayerManager {
         gameInstance.renderManager.showFloatingText(this.player.x, this.player.y, `-${damage}`, '#ff4444');
         gameInstance.renderManager.showPlayerDamageFlash(gameInstance);
         
+        // 質的アップグレード：カウンターアタック判定（攻撃者がいる場合）
+        if (arguments.length > 3 && arguments[3]) { // 攻撃者情報が渡されている場合
+            const attacker = arguments[3];
+            gameInstance.qualitativeUpgradeManager.onPlayerAttacked(attacker, gameInstance);
+        }
+        
         if (this.player.hp <= 0) {
             this.triggerGameOver(gameInstance, '力尽きました...');
             return true; // ゲームオーバー
@@ -489,5 +527,73 @@ class PlayerManager {
         }
         
         return bonus;
+    }
+    
+    // 質的アップグレード：シールド最大数取得
+    getMaxShields(gameInstance) {
+        if (gameInstance.qualitativeUpgradeManager) {
+            return gameInstance.qualitativeUpgradeManager.getPlayerMaxShields();
+        }
+        return 1; // デフォルト値
+    }
+    
+    // 質的アップグレード：追加行動のチェック
+    hasExtraActionAvailable() {
+        return this.hasExtraAction;
+    }
+    
+    // 質的アップグレード：追加行動を消費
+    consumeExtraAction() {
+        this.hasExtraAction = false;
+        this.chainBonusDamage = 0;
+    }
+    
+    // 被攻撃時の処理（質的アップグレード統合）
+    takeDamage(damage, attacker, gameInstance) {
+        // 質的アップグレードのシールド判定
+        if (this.player.shields > 0) {
+            this.player.shields--;
+            gameInstance.addCombatLog('シールドが攻撃を防いだ！');
+            gameInstance.renderManager.showFloatingText(this.player.x, this.player.y, 'SHIELD!', '#00aaff');
+            
+            // 音響効果
+            if (gameInstance.soundManager) {
+                gameInstance.soundManager.playSound('shield');
+            }
+            
+            return 0; // ダメージなし
+        }
+        
+        // 従来のシールド判定（アクティブ能力）
+        if (this.player.shieldActive) {
+            gameInstance.addCombatLog('シールドが攻撃を防いだ！');
+            gameInstance.renderManager.showFloatingText(this.player.x, this.player.y, 'SHIELD!', '#00aaff');
+            
+            // シールド持続時間を減らす（設定により）
+            if (this.player.shieldDuration > 0) {
+                this.player.shieldDuration--;
+                if (this.player.shieldDuration <= 0) {
+                    this.player.shieldActive = false;
+                    gameInstance.addCombatLog('シールドが解除されました');
+                }
+            }
+            
+            return 0; // ダメージなし
+        }
+        
+        // 通常のダメージ計算
+        const finalDamage = Math.max(1, damage - this.player.defense);
+        this.player.hp -= finalDamage;
+        
+        // ダメージエフェクト
+        gameInstance.renderManager.showFloatingText(this.player.x, this.player.y, `-${finalDamage}`, '#ff4444');
+        gameInstance.renderManager.showPlayerDamageFlash(gameInstance);
+        
+        // 質的アップグレード：反撃処理
+        if (attacker && gameInstance.qualitativeUpgradeManager) {
+            gameInstance.onPlayerAttacked(attacker, finalDamage);
+        }
+        
+        return finalDamage;
     }
 }

@@ -210,8 +210,8 @@ class EnemyManager {
             }
         }
         
-        // プレイヤーにダメージを与える（クリティカル情報を渡す）
-        gameInstance.playerManager.takeDamage(damage, gameInstance, isCritical);
+        // プレイヤーにダメージを与える（攻撃者情報とゲームインスタンスを渡す）
+        gameInstance.playerManager.takeDamage(damage, alien, gameInstance);
     }
 
     getAliveAliens() {

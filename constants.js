@@ -575,3 +575,147 @@ const COMMUNICATION_MESSAGES = {
         }
     ]
 };
+
+// 質的アップグレードシステム
+const QUALITATIVE_UPGRADES = {
+    chain_strike: {
+        id: "chain_strike",
+        name: "チェインストライク",
+        category: "combat_offensive",
+        
+        levels: [
+            {
+                level: 1,
+                name: "連続攻撃 I",
+                description: "敵のHP30%以下を撃破時、追加行動を獲得",
+                cost: 100,
+                unlockFloor: 1,
+                effects: {
+                    triggerThreshold: 0.3,
+                    maxChains: 1,
+                    bonusDamage: 0
+                }
+            },
+            {
+                level: 2,
+                name: "連続攻撃 II", 
+                description: "発動条件をHP50%以下に拡大、連続2回まで可能",
+                cost: 200,
+                unlockFloor: 5,
+                effects: {
+                    triggerThreshold: 0.5,
+                    maxChains: 2,
+                    bonusDamage: 5
+                }
+            },
+            {
+                level: 3,
+                name: "連続攻撃 III",
+                description: "一撃撃破でも発動、無制限連続可能",
+                cost: 350,
+                unlockFloor: 10,
+                effects: {
+                    triggerThreshold: 1.0,
+                    maxChains: 999,
+                    bonusDamage: 10,
+                    perfectKillBonus: true
+                }
+            }
+        ]
+    },
+    
+    counter_attack: {
+        id: "counter_attack",
+        name: "カウンターアタック",
+        category: "combat_defensive",
+        
+        levels: [
+            {
+                level: 1,
+                name: "反撃 I",
+                description: "被攻撃時50%の確率で自動反撃",
+                cost: 120,
+                unlockFloor: 3,
+                effects: {
+                    triggerChance: 0.5,
+                    damageMultiplier: 0.7,
+                    canCritical: false
+                }
+            },
+            {
+                level: 2,
+                name: "反撃 II",
+                description: "反撃確率75%、通常ダメージで反撃",
+                cost: 250,
+                unlockFloor: 7,
+                effects: {
+                    triggerChance: 0.75,
+                    damageMultiplier: 1.0,
+                    canCritical: true
+                }
+            },
+            {
+                level: 3,
+                name: "反撃 III",
+                description: "必ず反撃、クリティカル率2倍",
+                cost: 400,
+                unlockFloor: 12,
+                effects: {
+                    triggerChance: 1.0,
+                    damageMultiplier: 1.2,
+                    canCritical: true,
+                    criticalBonus: 2.0
+                }
+            }
+        ]
+    },
+    
+    auto_repair: {
+        id: "auto_repair",
+        name: "オートリペア",
+        category: "defense_utility",
+        
+        levels: [
+            {
+                level: 1,
+                name: "自動修復 I",
+                description: "フロア移動時にシールドが50%の確率で回復",
+                cost: 150,
+                unlockFloor: 4,
+                effects: {
+                    floorRecoveryChance: 0.5,
+                    turnRecovery: false,
+                    maxShields: 1
+                }
+            },
+            {
+                level: 2,
+                name: "自動修復 II",
+                description: "フロア移動時に確実に回復、15ターンごとに回復判定",
+                cost: 280,
+                unlockFloor: 8,
+                effects: {
+                    floorRecoveryChance: 1.0,
+                    turnRecovery: true,
+                    turnInterval: 15,
+                    turnRecoveryChance: 0.3,
+                    maxShields: 1
+                }
+            },
+            {
+                level: 3,
+                name: "自動修復 III",
+                description: "最大シールド2個、10ターンごとに確実に回復",
+                cost: 450,
+                unlockFloor: 13,
+                effects: {
+                    floorRecoveryChance: 1.0,
+                    turnRecovery: true,
+                    turnInterval: 10,
+                    turnRecoveryChance: 1.0,
+                    maxShields: 2
+                }
+            }
+        ]
+    }
+};

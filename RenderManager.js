@@ -327,6 +327,37 @@ class RenderManager {
         }
     }
 
+    showUpgradeEffect(x, y) {
+        const gameGrid = document.getElementById('game-grid');
+        if (!gameGrid) return;
+        
+        const cellIndex = y * this.gridSize + x;
+        const cell = gameGrid.children[cellIndex];
+        if (!cell) return;
+        
+        // アップグレードエフェクトの作成
+        const effect = document.createElement('div');
+        effect.className = 'upgrade-effect';
+        effect.style.position = 'absolute';
+        effect.style.left = '50%';
+        effect.style.top = '50%';
+        effect.style.transform = 'translate(-50%, -50%)';
+        effect.innerHTML = '✨';
+        effect.style.fontSize = '40px';
+        effect.style.animation = 'upgradeEffectAnimation 1.5s ease-out';
+        effect.style.pointerEvents = 'none';
+        effect.style.zIndex = '1000';
+        
+        cell.appendChild(effect);
+        
+        // アニメーション終了後に削除
+        setTimeout(() => {
+            if (effect.parentNode) {
+                effect.parentNode.removeChild(effect);
+            }
+        }, 1500);
+    }
+    
     showFloatingText(x, y, text, color) {
         const gameGrid = document.getElementById('game-grid');
         if (!gameGrid) return;

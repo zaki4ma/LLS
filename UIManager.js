@@ -19,11 +19,204 @@ class UIManager {
         }
     }
 
+    updateQualitativeUpgradeStatus(gameInstance) {
+        if (!gameInstance.qualitativeUpgradeManager) return;
+        
+        const levels = gameInstance.qualitativeUpgradeManager.getCurrentLevels();
+        
+        // チェインストライク
+        const chainElement = document.getElementById('chain-strike-status');
+        if (chainElement) {
+            chainElement.className = 'upgrade-status-item';
+            if (levels.chainStrike > 0) {
+                chainElement.classList.add(`level-${levels.chainStrike}`);
+            }
+            chainElement.querySelector('.upgrade-level').textContent = `Lv.${levels.chainStrike}`;
+        }
+        
+        // カウンターアタック
+        const counterElement = document.getElementById('counter-attack-status');
+        if (counterElement) {
+            counterElement.className = 'upgrade-status-item';
+            if (levels.counterAttack > 0) {
+                counterElement.classList.add(`level-${levels.counterAttack}`);
+            }
+            counterElement.querySelector('.upgrade-level').textContent = `Lv.${levels.counterAttack}`;
+        }
+        
+        // オートリペア
+        const repairElement = document.getElementById('auto-repair-status');
+        if (repairElement) {
+            repairElement.className = 'upgrade-status-item';
+            if (levels.autoRepair > 0) {
+                repairElement.classList.add(`level-${levels.autoRepair}`);
+            }
+            repairElement.querySelector('.upgrade-level').textContent = `Lv.${levels.autoRepair}`;
+        }
+    }
+    
+    openUpgradeModal(gameInstance) {
+        const modal = document.getElementById('upgrade-modal');
+        if (!modal) return;
+        
+        modal.style.display = 'flex';
+        this.updateUpgradeModalContent(gameInstance);
+    }
+    
+    closeUpgradeModal() {
+        const modal = document.getElementById('upgrade-modal');
+        if (modal) {
+            modal.style.display = 'none';
+        }
+    }
+    
+    updateUpgradeModalContent(gameInstance) {
+        // Gold表示を更新
+        const goldDisplay = document.getElementById('modal-gold-display');
+        if (goldDisplay) {
+            goldDisplay.textContent = gameInstance.playerManager.player.gold;
+        }
+        
+        // 相乗効果表示を更新
+        const synergyDisplay = document.getElementById('synergy-status');
+        if (synergyDisplay && gameInstance.qualitativeUpgradeManager) {
+            const synergy = gameInstance.qualitativeUpgradeManager.getSynergyBonus(gameInstance);
+            const progress = gameInstance.qualitativeUpgradeManager.getUpgradeProgress();
+            
+            if (synergy.active) {
+                synergyDisplay.innerHTML = `
+                    <div style="background: linear-gradient(135deg, #404020 0%, #505030 100%); border: 2px solid #ffaa00; padding: 8px; border-radius: 5px;">
+                        <div style="color: #ffaa00; font-weight: bold; margin-bottom: 5px;">✨ ${synergy.name}</div>
+                        <div style="color: #ccc; font-size: 12px;">${synergy.description}</div>
+                    </div>
+                `;
+            } else {
+                synergyDisplay.innerHTML = `
+                    <div style="color: #888; font-size: 12px;">
+                        相乗効果: 無し (特殊能力を組み合わせてボーナスを獲得しよう！)<br>
+                        進行状況: ${progress.current}/${progress.max} (${progress.percentage}%)
+                    </div>
+                `;
+            }
+        }
+        
+        // 質的アップグレードセクションを更新
+        const qualitativeGrid = document.getElementById('qualitative-upgrades-grid');
+        if (qualitativeGrid) {
+            qualitativeGrid.innerHTML = '';
+            
+            const upgrades = gameInstance.qualitativeUpgradeManager.getAvailableUpgrades(gameInstance);
+            
+            // 各アップグレードタイプ（チェインストライク、カウンター、オートリペア）について
+            ['chain_strike', 'counter_attack', 'auto_repair'].forEach(upgradeId => {
+                const upgrade = QUALITATIVE_UPGRADES[upgradeId];
+                const currentLevel = gameInstance.qualitativeUpgradeManager.purchasedUpgrades[upgradeId];
+                
+                const card = document.createElement('div');
+                card.className = 'upgrade-card';
+                
+                if (currentLevel >= upgrade.levels.length) {
+                    card.classList.add('maxed');
+                }
+                
+                const icon = upgradeId === 'chain_strike' ? '⚡' : 
+                           upgradeId === 'counter_attack' ? '🛡️' : '🔧';
+                
+                let levelInfo = '';
+                let description = '';
+                let cost = 0;
+                let canPurchase = false;
+                
+                if (currentLevel < upgrade.levels.length) {
+                    const nextLevel = upgrade.levels[currentLevel];
+                    levelInfo = `Lv.${currentLevel} → Lv.${currentLevel + 1}`;
+                    description = nextLevel.description;
+                    cost = nextLevel.cost;
+                    canPurchase = gameInstance.playerManager.player.gold >= cost && 
+                                 gameInstance.floor >= nextLevel.unlockFloor;
+                    
+                    if (gameInstance.floor < nextLevel.unlockFloor) {
+                        card.classList.add('locked');
+                    }
+                } else {
+                    levelInfo = `Lv.${currentLevel} (MAX)`;
+                    description = upgrade.levels[currentLevel - 1].description;
+                }
+                
+                card.innerHTML = `
+                    <div class="upgrade-card-icon">${icon}</div>
+                    <div class="upgrade-card-name">${upgrade.name}</div>
+                    <div class="upgrade-card-description">${description}</div>
+                    <div class="upgrade-card-level">
+                        <span>${levelInfo}</span>
+                        <div class="upgrade-level-bar">
+                            <div class="upgrade-level-fill" style="width: ${(currentLevel / upgrade.levels.length) * 100}%"></div>
+                        </div>
+                    </div>
+                    ${currentLevel < upgrade.levels.length ? `
+                        <div class="upgrade-card-cost">${cost} Gold</div>
+                        <button class="upgrade-card-btn ${canPurchase ? '' : 'disabled'}" 
+                                ${canPurchase ? '' : 'disabled'}
+                                onclick="game.uiManager.purchaseQualitativeUpgrade('${upgradeId}', game)">
+                            ${canPurchase ? '購入' : (gameInstance.floor < upgrade.levels[currentLevel].unlockFloor ? `デッキ${upgrade.levels[currentLevel].unlockFloor}で解放` : 'Gold不足')}
+                        </button>
+                    ` : `
+                        <button class="upgrade-card-btn maxed" disabled>最大レベル</button>
+                    `}
+                `;
+                
+                qualitativeGrid.appendChild(card);
+            });
+        }
+    }
+    
+    purchaseQualitativeUpgrade(upgradeId, gameInstance) {
+        const result = gameInstance.qualitativeUpgradeManager.purchaseUpgrade(upgradeId, gameInstance);
+        
+        if (result.success) {
+            // 購入成功のエフェクト
+            gameInstance.addCombatLog(`✨ ${result.message}`);
+            
+            if (gameInstance.soundManager) {
+                gameInstance.soundManager.playSound('upgrade_purchased');
+            }
+            
+            // UIを更新
+            this.updateUpgradeModalContent(gameInstance);
+            this.updateQualitativeUpgradeStatus(gameInstance);
+            this.updateStatus(gameInstance);
+            
+            // 購入エフェクトを表示
+            this.showUpgradePurchaseEffect(upgradeId);
+        } else {
+            gameInstance.addCombatLog(`❌ ${result.message}`);
+        }
+    }
+    
+    showUpgradePurchaseEffect(upgradeId) {
+        // 購入時の視覚効果
+        if (this.gameInstance && this.gameInstance.renderManager && this.gameInstance.playerManager) {
+            const player = this.gameInstance.playerManager.player;
+            this.gameInstance.renderManager.showUpgradeEffect(player.x, player.y);
+        }
+        
+        // アップグレードアイコンにパルスエフェクトを追加
+        const statusId = upgradeId.replace('_', '-') + '-status';
+        const statusElement = document.getElementById(statusId);
+        if (statusElement) {
+            statusElement.style.animation = 'pulseEffect 0.6s ease-out';
+            setTimeout(() => {
+                statusElement.style.animation = '';
+            }, 600);
+        }
+    }
+
     updateStatus(gameInstance) {
         const player = gameInstance.playerManager.player;
         
         document.getElementById('player-hp').textContent = Math.max(0, player.hp);
         document.getElementById('player-maxhp').textContent = player.maxHp;
+        document.getElementById('player-shields').textContent = player.shields;
         document.getElementById('player-level').textContent = player.level;
         document.getElementById('player-attack').textContent = player.attack;
         document.getElementById('player-defense').textContent = player.defense;
@@ -136,6 +329,21 @@ class UIManager {
         this.updateFloorDisplay();
         this.updateAbilitiesDisplay(gameInstance);
         this.updateRangedWeaponsDisplay(gameInstance);
+        this.updateQualitativeUpgradeStatus(gameInstance);
+        
+        // 相乗効果の表示更新
+        this.updateSynergyStatus(gameInstance);
+    }
+    
+    updateSynergyStatus(gameInstance) {
+        if (!gameInstance.qualitativeUpgradeManager) return;
+        
+        const synergy = gameInstance.qualitativeUpgradeManager.getSynergyBonus(gameInstance);
+        const progress = gameInstance.qualitativeUpgradeManager.getUpgradeProgress();
+        
+        // 相乗効果ステータス表示を更新（将来的に実装）
+        console.log('相乗効果ステータス:', synergy);
+        console.log('アップグレード進行状況:', progress);
     }
 
     updateFloorDisplay() {
@@ -326,6 +534,28 @@ class UIManager {
                 </div>
                 
                 <div style="margin: 15px 0;">
+                    <h4 style="color: #ff8800; margin-bottom: 10px;">⭐ 特殊能力（質的アップグレード）</h4>
+                    <p style="color: #ccc; margin: 5px 0; font-size: 13px;">エレベーターで対応するキーを押して購入（最大3レベルまで強化可能）：</p>
+                    <div style="font-size: 12px;">
+                        <div style="margin: 8px 0; padding: 8px; border: 1px solid #ff8800; border-radius: 4px; background: rgba(255, 136, 0, 0.1);">
+                            <strong style="color: #ffaa00;">チェインストライク [C]</strong><br>
+                            <span style="color: #ccc;">• 弱った敵を擊破時に追加行動を獲得</span><br>
+                            <span style="color: #ffaa00;">Lv1: 100G → Lv2: 200G → Lv3: 350G</span>
+                        </div>
+                        <div style="margin: 8px 0; padding: 8px; border: 1px solid #ff8800; border-radius: 4px; background: rgba(255, 136, 0, 0.1);">
+                            <strong style="color: #ffaa00;">カウンターアタック [X]</strong><br>
+                            <span style="color: #ccc;">• 被攻撃時に自動で反撃してダメージを与える</span><br>
+                            <span style="color: #ffaa00;">Lv1: 120G → Lv2: 250G → Lv3: 400G</span>
+                        </div>
+                        <div style="margin: 8px 0; padding: 8px; border: 1px solid #ff8800; border-radius: 4px; background: rgba(255, 136, 0, 0.1);">
+                            <strong style="color: #ffaa00;">オートリペア [R]</strong><br>
+                            <span style="color: #ccc;">• シールドが時間経過で自動回復する</span><br>
+                            <span style="color: #ffaa00;">Lv1: 150G → Lv2: 280G → Lv3: 450G</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="margin: 15px 0;">
                     <h4 style="color: #00ffff; margin-bottom: 10px;">🎮 エレベーター操作</h4>
                     <ul style="color: #ccc; margin-left: 20px; font-size: 12px;">
                         <li><strong style="color: #00ffff;">[>]</strong> - 次のデッキに進む</li>
@@ -510,5 +740,54 @@ class UIManager {
                 document.removeEventListener('keydown', closeOnEsc);
             }
         });
+    }
+    
+    // 質的アップグレード表示の更新
+    updateQualitativeUpgradesDisplay(gameInstance) {
+        if (!gameInstance.qualitativeUpgradeManager) return;
+        
+        const levels = gameInstance.qualitativeUpgradeManager.getCurrentLevels();
+        
+        // チェインストライク
+        const chainElement = document.getElementById('chain-strike-level');
+        if (chainElement) {
+            if (levels.chainStrike > 0) {
+                chainElement.textContent = `Lv.${levels.chainStrike}`;
+                chainElement.style.color = '#ffaa00';
+                chainElement.style.textShadow = '0 0 5px #ffaa00';
+            } else {
+                chainElement.textContent = '未習得';
+                chainElement.style.color = '#666666';
+                chainElement.style.textShadow = 'none';
+            }
+        }
+        
+        // カウンターアタック
+        const counterElement = document.getElementById('counter-attack-level');
+        if (counterElement) {
+            if (levels.counterAttack > 0) {
+                counterElement.textContent = `Lv.${levels.counterAttack}`;
+                counterElement.style.color = '#ff0088';
+                counterElement.style.textShadow = '0 0 5px #ff0088';
+            } else {
+                counterElement.textContent = '未習得';
+                counterElement.style.color = '#666666';
+                counterElement.style.textShadow = 'none';
+            }
+        }
+        
+        // オートリペア
+        const repairElement = document.getElementById('auto-repair-level');
+        if (repairElement) {
+            if (levels.autoRepair > 0) {
+                repairElement.textContent = `Lv.${levels.autoRepair}`;
+                repairElement.style.color = '#00aaff';
+                repairElement.style.textShadow = '0 0 5px #00aaff';
+            } else {
+                repairElement.textContent = '未習得';
+                repairElement.style.color = '#666666';
+                repairElement.style.textShadow = 'none';
+            }
+        }
     }
 }
