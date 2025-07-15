@@ -98,6 +98,17 @@
         .bulkhead { color: #4488cc; background-color: #112233; border: 1px solid #4488cc; }
         .equipment { color: #00aaff; text-shadow: 0 0 8px #00aaff; }
         .elevator { color: #00ffff; text-shadow: 0 0 12px #00ffff; animation: elevatorGlow 3s infinite; }
+        .engine_room { color: #666; background-color: #222; border: 1px solid #666; }
+        .engine_core { color: #ff8800; text-shadow: 0 0 15px #ff8800; animation: engineCorePulse 2s infinite; }
+        .engine_room { background-color: #2a1a0a; border: 1px solid #ff8800; }
+        .engine_core { 
+            color: #ffaa00; 
+            background-color: #331a00; 
+            text-shadow: 0 0 15px #ffaa00; 
+            animation: enginePulse 1.5s infinite;
+            border: 2px solid #ff8800;
+            font-weight: bold;
+        }
         
         .status-panel {
             background: linear-gradient(135deg, #0a1420 0%, #1a2540 100%);
@@ -352,6 +363,21 @@
             0% { text-shadow: 0 0 12px #00ffff; }
             50% { text-shadow: 0 0 25px #00ffff, 0 0 35px #00aaff; }
             100% { text-shadow: 0 0 12px #00ffff; }
+        }
+        
+        @keyframes enginePulse {
+            0% { 
+                text-shadow: 0 0 15px #ffaa00, 0 0 25px #ff8800;
+                background-color: #331a00;
+            }
+            50% { 
+                text-shadow: 0 0 30px #ffaa00, 0 0 40px #ff8800, 0 0 50px #ff6600;
+                background-color: #442200;
+            }
+            100% { 
+                text-shadow: 0 0 15px #ffaa00, 0 0 25px #ff8800;
+                background-color: #331a00;
+            }
         }
         
         @keyframes radiationPulse {
@@ -1060,6 +1086,17 @@
         .upgrade-card-btn.maxed {
             background: #ffaa00;
             color: #000;
+        }
+        
+        @keyframes engineCorePulse {
+            0%, 100% {
+                text-shadow: 0 0 15px #ff8800;
+                transform: scale(1);
+            }
+            50% {
+                text-shadow: 0 0 25px #ff8800, 0 0 35px #ffaa00;
+                transform: scale(1.2);
+            }
         }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>

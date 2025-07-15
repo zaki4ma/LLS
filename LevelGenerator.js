@@ -38,10 +38,13 @@ class LevelGenerator {
         // エレベーターを配置（デッキ20では配置しない - 最終マップ）
         if (gameInstance.floor < 20) {
             this.placeElevator(gameInstance);
+            console.log('LevelGenerator: Elevator placed');
         } else {
-            gameInstance.addCombatLog('🏁 最終デッキ - エレベーターは機能していません');
+            // デッキ20ではエンジンルームを配置
+            this.placeEngineRoom(gameInstance);
+            gameInstance.addCombatLog('🔧 エンジンルームを発見しました...');
+            console.log('LevelGenerator: Engine room placed');
         }
-        console.log('LevelGenerator: Elevator placed');
         
         // 視界を計算
         gameInstance.renderManager.calculateVisibility(gameInstance);
@@ -265,5 +268,68 @@ class LevelGenerator {
 
     getRooms() {
         return this.rooms;
+    }
+    
+    // デッキ20専用：エンジンルーム配置
+    placeEngineRoom(gameInstance) {
+        console.log('LevelGenerator: Placing engine room...');
+        
+        // エンジンルームの配置位置を決定（マップの中央付近）
+        const roomWidth = ENGINE_ROOM_CONFIG.roomSize.width;
+        const roomHeight = ENGINE_ROOM_CONFIG.roomSize.height;
+        const centerX = Math.floor(this.gridSize / 2) - Math.floor(roomWidth / 2);
+        const centerY = Math.floor(this.gridSize / 2) - Math.floor(roomHeight / 2);
+        
+        // エンジンルームを作成
+        for (let y = centerY; y < centerY + roomHeight; y++) {
+            for (let x = centerX; x < centerX + roomWidth; x++) {
+                if (x >= 0 && x < this.gridSize && y >= 0 && y < this.gridSize) {
+                    // エンジンルームの床として設定
+                    gameInstance.grid[y][x] = 'engine_room';
+                }
+            }
+        }
+        
+        // エンジンルームの壁を設置
+        for (let y = centerY - 1; y <= centerY + roomHeight; y++) {
+            for (let x = centerX - 1; x <= centerX + roomWidth; x++) {
+                if (x >= 0 && x < this.gridSize && y >= 0 && y < this.gridSize) {
+                    // 境界をチェック
+                    if (x === centerX - 1 || x === centerX + roomWidth || 
+                        y === centerY - 1 || y === centerY + roomHeight) {
+                        // 壁の位置で、まだ何も配置されていない場合
+                        if (gameInstance.grid[y][x] === null) {
+                            gameInstance.grid[y][x] = 'bulkhead';
+                        }
+                    }
+                }
+            }
+        }
+        
+        // エンジンコアを中央に配置
+        const coreX = centerX + ENGINE_ROOM_CONFIG.corePosition.x;
+        const coreY = centerY + ENGINE_ROOM_CONFIG.corePosition.y;
+        
+        if (coreX >= 0 && coreX < this.gridSize && coreY >= 0 && coreY < this.gridSize) {
+            gameInstance.grid[coreY][coreX] = 'engine_core';
+            console.log(`Engine core placed at: ${coreX}, ${coreY}`);
+        }
+        
+        // エンジンルームへの入口を作成（南側中央）
+        const entranceX = centerX + Math.floor(roomWidth / 2);
+        const entranceY = centerY + roomHeight;
+        
+        if (entranceX >= 0 && entranceX < this.gridSize && entranceY >= 0 && entranceY < this.gridSize) {
+            gameInstance.grid[entranceY][entranceX] = 'floor';
+        }
+        
+        // エンジンルームから外への通路を確保
+        for (let y = entranceY + 1; y < this.gridSize - 1; y++) {
+            if (gameInstance.grid[y][entranceX] === null) {
+                gameInstance.grid[y][entranceX] = 'floor';
+            }
+        }
+        
+        console.log('LevelGenerator: Engine room placement completed');
     }
 }

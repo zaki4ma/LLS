@@ -683,6 +683,85 @@ class UIManager {
         }
     }
 
+    showEndingModal(endingType, gameInstance) {
+        const modal = document.createElement('div');
+        modal.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 6000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        `;
+        
+        const content = document.createElement('div');
+        content.style.cssText = `
+            background: linear-gradient(135deg, #0a1420 0%, #1a2540 100%);
+            border: 3px solid #ff8800;
+            border-radius: 15px;
+            padding: 40px;
+            max-width: 800px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 0 50px rgba(255, 136, 0, 0.6);
+            color: #ffffff;
+        `;
+        
+        const endingData = ENGINE_ROOM_CONFIG.endingMessages[endingType];
+        
+        content.innerHTML = `
+            <div style="margin-bottom: 30px;">
+                <h2 style="color: #ff8800; font-size: 32px; margin-bottom: 20px; text-shadow: 0 0 20px #ff8800;">
+                    ${endingData.title}
+                </h2>
+                <div style="font-size: 18px; line-height: 1.8; margin-bottom: 20px;">
+                    ${endingData.story.split('\n').map(line => `<p style="margin: 10px 0;">${line}</p>`).join('')}
+                </div>
+                <div style="font-size: 16px; color: ${endingData.color}; font-weight: bold; margin-top: 30px;">
+                    ${endingData.outcome}
+                </div>
+            </div>
+            
+            <div style="border-top: 2px solid #444; padding-top: 20px; margin-top: 20px;">
+                <div style="font-size: 20px; color: #ffaa00; margin-bottom: 15px;">
+                    最終スコア: ${gameInstance.currentScore.toLocaleString()}点
+                </div>
+                <div style="font-size: 16px; color: #ccc;">
+                    到達フロア: ${gameInstance.floor} | 撃破数: ${gameInstance.aliensKilled} | 収集ゴールド: ${gameInstance.totalGoldCollected}
+                </div>
+            </div>
+            
+            <button id="show-ranking" style="
+                background: linear-gradient(135deg, #0066cc 0%, #0088ff 100%);
+                color: #ffffff;
+                border: none;
+                padding: 15px 30px;
+                border-radius: 8px;
+                font-size: 18px;
+                font-weight: bold;
+                cursor: pointer;
+                margin-top: 30px;
+                box-shadow: 0 0 20px rgba(0, 136, 255, 0.4);
+                transition: all 0.3s ease;
+            " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                ランキングを見る
+            </button>
+        `;
+        
+        modal.appendChild(content);
+        document.body.appendChild(modal);
+        
+        // ランキング表示ボタンのイベント
+        document.getElementById('show-ranking').onclick = () => {
+            modal.remove();
+            this.showRanking(gameInstance);
+        };
+    }
+
     showModal(title, content) {
         // モーダル要素を作成
         const modal = document.createElement('div');
@@ -795,5 +874,88 @@ class UIManager {
                 repairElement.style.textShadow = 'none';
             }
         }
+    }
+    
+    // エンディングモーダル表示
+    showEndingModal(endingType, gameInstance) {
+        const endingData = ENGINE_ROOM_CONFIG.endingMessages[endingType];
+        
+        const modal = document.createElement('div');
+        modal.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 6000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        `;
+        
+        const content = document.createElement('div');
+        content.style.cssText = `
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
+            border: 3px solid ${endingType === 'repair' ? '#00ff88' : '#ff4444'};
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 700px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            text-align: center;
+            box-shadow: 0 0 60px ${endingType === 'repair' ? 'rgba(0, 255, 136, 0.6)' : 'rgba(255, 68, 68, 0.6)'};
+            color: #ffffff;
+        `;
+        
+        content.innerHTML = `
+            <div style="margin-bottom: 40px;">
+                ${endingData.content}
+                
+                <div style="margin: 30px 0; padding: 20px; background: rgba(0, 0, 0, 0.3); border-radius: 10px;">
+                    <h3 style="color: #ffaa00; margin-bottom: 15px;">最終成績</h3>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; text-align: left; max-width: 400px; margin: 0 auto;">
+                        <div>最終スコア:</div><div style="color: #ffaa00; font-weight: bold;">${gameInstance.currentScore.toLocaleString()}</div>
+                        <div>到達デッキ:</div><div style="color: #00aaff;">${gameInstance.floor}</div>
+                        <div>撃破エイリアン:</div><div style="color: #ff8888;">${gameInstance.aliensKilled}</div>
+                        <div>収集ゴールド:</div><div style="color: #ffcc00;">${gameInstance.totalGoldCollected}</div>
+                        <div>エンディング:</div><div style="color: ${endingType === 'repair' ? '#00ff88' : '#ff4444'};">${endingType === 'repair' ? '地球帰還' : '自己犠牲'}</div>
+                    </div>
+                </div>
+            </div>
+            
+            <button id="show-ranking-btn" style="
+                background: linear-gradient(135deg, #ff8800 0%, #ffaa44 100%);
+                color: #000000;
+                border: none;
+                padding: 15px 30px;
+                border-radius: 10px;
+                font-size: 18px;
+                font-weight: bold;
+                cursor: pointer;
+                box-shadow: 0 0 20px rgba(255, 136, 0, 0.5);
+                transition: all 0.3s ease;
+            " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                🏆 ランキングを確認
+            </button>
+        `;
+        
+        modal.appendChild(content);
+        document.body.appendChild(modal);
+        
+        // ランキング表示ボタン
+        document.getElementById('show-ranking-btn').onclick = () => {
+            modal.remove();
+            this.showRankingModal(gameInstance);
+        };
+        
+        // 5秒後に自動でランキング表示ボタンをハイライト
+        setTimeout(() => {
+            const btn = document.getElementById('show-ranking-btn');
+            if (btn) {
+                btn.style.animation = 'pulseEffect 1s infinite';
+            }
+        }, 5000);
     }
 }

@@ -55,7 +55,7 @@ class PlayerManager {
             
             if (cellType === 'bulkhead') return;
             
-            const walkableCells = ['floor', 'alien', 'supply', 'oxygen-supply', 'medical-supply', 'weapon-supply', 'power-charge-station', 'ranged-weapon-container', 'elevator'];
+            const walkableCells = ['floor', 'alien', 'supply', 'oxygen-supply', 'medical-supply', 'weapon-supply', 'power-charge-station', 'ranged-weapon-container', 'elevator', 'engine_room', 'engine_core'];
             if (!walkableCells.includes(cellType)) return;
             
             if (cellType === 'alien') {
@@ -107,6 +107,18 @@ class PlayerManager {
                 
                 gameInstance.upgradeManager.showUpgradeMenu(gameInstance);
                 return false; // エレベーターはターン処理しない
+            }
+            
+            if (cellType === 'engine_core') {
+                // エンジンコアに触れた - エンディング選択を表示
+                gameInstance.grid[this.player.y][this.player.x] = 'floor';
+                this.player.x = newX;
+                this.player.y = newY;
+                gameInstance.grid[this.player.y][this.player.x] = 'player';
+                
+                // エンジンコア選択モーダルを表示
+                gameInstance.showEngineChoiceModal();
+                return false; // エンジンコア操作はターン処理しない
             }
             
             // 現在の位置がエレベーターの場合、移動後にエレベーターを復元

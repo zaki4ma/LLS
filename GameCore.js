@@ -607,4 +607,160 @@ class RoguelikeGame {
         }
         // 他のロード処理...
     }
+    
+    // エンジンコア選択モーダル表示
+    showEngineChoiceModal() {
+        this.addCombatLog('🔧 エンジンコアに到達しました...');
+        this.addCombatLog('最後の選択を行ってください。');
+        
+        // エンディングBGMを再生開始
+        if (this.soundManager) {
+            this.soundManager.playEndingBGM();
+        }
+        
+        const modal = document.createElement('div');
+        modal.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 5000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        `;
+        
+        const content = document.createElement('div');
+        content.style.cssText = `
+            background: linear-gradient(135deg, #0a1420 0%, #1a2540 100%);
+            border: 3px solid #ff8800;
+            border-radius: 15px;
+            padding: 30px;
+            max-width: 600px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 0 50px rgba(255, 136, 0, 0.6);
+            color: #ffffff;
+        `;
+        
+        content.innerHTML = `
+            <div style="margin-bottom: 30px;">
+                <h2 style="color: #ff8800; font-size: 28px; margin-bottom: 20px; text-shadow: 0 0 20px #ff8800;">
+                    ⚙️ エンジンシステム制御
+                </h2>
+                <p style="font-size: 18px; line-height: 1.6; margin-bottom: 20px;">
+                    ルミナス号のメインエンジンが目の前にある。<br>
+                    損傷は激しいが、まだ修理できそうだ。
+                </p>
+                <p style="font-size: 16px; line-height: 1.6; color: #ffaa88;">
+                    しかし...爆破装置を設置することも可能だ。<br>
+                    君の決断が、すべての運命を決める。
+                </p>
+            </div>
+            
+            <div style="display: flex; gap: 20px; justify-content: center;">
+                <button id="repair-engine" style="
+                    background: linear-gradient(135deg, #00aa44 0%, #44cc88 100%);
+                    color: #ffffff;
+                    border: none;
+                    padding: 15px 25px;
+                    border-radius: 8px;
+                    font-size: 16px;
+                    font-weight: bold;
+                    cursor: pointer;
+                    box-shadow: 0 0 20px rgba(0, 170, 68, 0.4);
+                    transition: all 0.3s ease;
+                " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                    🔧 エンジンを修理する<br>
+                    <small style="opacity: 0.8;">(地球帰還)</small>
+                </button>
+                
+                <button id="destroy-engine" style="
+                    background: linear-gradient(135deg, #aa0044 0%, #cc4488 100%);
+                    color: #ffffff;
+                    border: none;
+                    padding: 15px 25px;
+                    border-radius: 8px;
+                    font-size: 16px;
+                    font-weight: bold;
+                    cursor: pointer;
+                    box-shadow: 0 0 20px rgba(170, 0, 68, 0.4);
+                    transition: all 0.3s ease;
+                " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                    💥 爆破装置を設置<br>
+                    <small style="opacity: 0.8;">(自己犠牲)</small>
+                </button>
+            </div>
+        `;
+        
+        modal.appendChild(content);
+        document.body.appendChild(modal);
+        
+        // ボタンイベント設定
+        document.getElementById('repair-engine').onclick = () => {
+            modal.remove();
+            this.handleEndingChoice(ENGINE_ROOM_CONFIG.endingTypes.REPAIR);
+        };
+        
+        document.getElementById('destroy-engine').onclick = () => {
+            modal.remove();
+            this.handleEndingChoice(ENGINE_ROOM_CONFIG.endingTypes.DESTROY);
+        };
+    }
+    
+    // エンディング選択処理
+    handleEndingChoice(endingType) {
+        this.gameOver = true;
+        
+        // 最終スコア計算
+        this.calculateFinalScore();
+        
+        // エンディング固有のスコアボーナス
+        if (endingType === ENGINE_ROOM_CONFIG.endingTypes.DESTROY) {
+            // 自己犠牲エンディングには英雄ボーナス
+            this.currentScore += 50000;
+            this.addCombatLog('英雄ボーナス: +50,000点');
+        }
+        
+        // ランキング保存
+        this.rankingManager.saveScore({
+            score: this.currentScore,
+            floor: this.floor,
+            aliensKilled: this.aliensKilled,
+            totalGold: this.totalGoldCollected,
+            completedGame: true,
+            endingType: endingType,
+            date: new Date().toISOString()
+        });
+        
+        // エンディングモーダル表示
+        this.uiManager.showEndingModal(endingType, this);
+    }
+    
+    // 最終スコア計算
+    calculateFinalScore() {
+        let score = 0;
+        
+        // 基本スコア：到達フロア
+        score += this.floor * 1000;
+        
+        // 敵撃破ボーナス
+        score += this.aliensKilled * 100;
+        
+        // ゴールド収集ボーナス
+        score += this.totalGoldCollected * 10;
+        
+        // 生存HPボーナス
+        score += this.playerManager.player.hp * 50;
+        
+        // クリア完了ボーナス（デッキ20到達）
+        if (this.floor >= 20) {
+            score += 25000;
+        }
+        
+        this.currentScore = score;
+        this.addCombatLog(`最終スコア計算完了: ${score.toLocaleString()}点`);
+    }
 }

@@ -719,3 +719,75 @@ const QUALITATIVE_UPGRADES = {
         ]
     }
 };
+
+// エンジンルーム関連定数
+const ENGINE_ROOM_CONFIG = {
+    // デッキ20専用のエンジンルーム設定
+    roomSize: {
+        width: 6,
+        height: 6
+    },
+    
+    // エンジンコアの配置位置（部屋の中央）
+    corePosition: {
+        x: 3,
+        y: 3
+    },
+    
+    // エンディングタイプ
+    endingTypes: {
+        REPAIR: 'repair',
+        DESTROY: 'destroy'
+    },
+    
+    // エンディングメッセージ
+    endingMessages: {
+        repair: {
+            title: '🌍 地球帰還エンディング',
+            content: `
+                <div style="text-align: center; line-height: 1.8;">
+                    <h2 style="color: #00ff88; margin-bottom: 20px;">エンジン修理完了</h2>
+                    <p style="color: #ffffff; font-size: 16px; margin-bottom: 15px;">
+                        君の手によってルミナス号のエンジンが息を吹き返した。<br>
+                        巨大な船体が静かに振動し、推進システムが再起動する。
+                    </p>
+                    <p style="color: #ffaa88; font-size: 16px; margin-bottom: 15px;">
+                        3年ぶりの地球への帰路が開かれた。<br>
+                        故郷の青い星が、遠い宇宙の彼方で君を待っている。
+                    </p>
+                    <p style="color: #ff8888; font-size: 16px; margin-bottom: 20px;">
+                        しかし...船内に潜むエイリアンたちも<br>
+                        君と共に地球へと向かうことになる。
+                    </p>
+                    <p style="color: #888888; font-size: 14px; font-style: italic;">
+                        この選択の結末は、まだ誰にも分からない...
+                    </p>
+                </div>
+            `
+        },
+        destroy: {
+            title: '💥 自己犠牲エンディング',
+            content: `
+                <div style="text-align: center; line-height: 1.8;">
+                    <h2 style="color: #ff4444; margin-bottom: 20px;">爆破装置設置完了</h2>
+                    <p style="color: #ffffff; font-size: 16px; margin-bottom: 15px;">
+                        君は最後の決断を下した。<br>
+                        ルミナス号と共に、エイリアンの脅威を終わらせることを。
+                    </p>
+                    <p style="color: #ffaa88; font-size: 16px; margin-bottom: 15px;">
+                        爆破装置のカウントダウンが始まる。<br>
+                        脱出ポッドはとうの昔に機能を停止している。
+                    </p>
+                    <p style="color: #88ff88; font-size: 16px; margin-bottom: 20px;">
+                        君の犠牲によって、地球は守られた。<br>
+                        120億の人々が、君の勇気を永遠に記憶するだろう。
+                    </p>
+                    <p style="color: #888888; font-size: 14px; font-style: italic;">
+                        真の英雄とは、誰も見ていない場所で<br>
+                        正しいことを行う者のことである。
+                    </p>
+                </div>
+            `
+        }
+    }
+};

@@ -324,6 +324,14 @@ class RenderManager {
                 cell.textContent = '>';
                 cell.classList.add('elevator');
                 break;
+            case 'engine_room':
+                cell.textContent = '·';
+                cell.classList.add('engine_room');
+                break;
+            case 'engine_core':
+                cell.textContent = '⚙';
+                cell.classList.add('engine_core');
+                break;
         }
     }
 
