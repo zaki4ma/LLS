@@ -8,6 +8,7 @@ class SoundManager {
         this.initialized = false;
         this.currentBGM = 'deck1'; // 現在のBGMトラック
         this.bgmTracks = {}; // BGMトラックの管理
+        this.bgmManager = null; // BGMManagerへの参照
     }
     
     async init() {
@@ -16,6 +17,10 @@ class SoundManager {
             if (Tone.context.state === 'suspended') {
                 await Tone.start();
             }
+            
+            // BGMManagerの初期化
+            this.bgmManager = new BGMManager();
+            await this.bgmManager.init();
         } catch (e) {
             console.warn('Audio context initialization failed:', e);
             return;
@@ -525,6 +530,13 @@ class SoundManager {
     
     setBGMVolume(value) {
         this.bgmVolume = value;
+        
+        // BGMManagerが初期化されている場合は委譲
+        if (this.bgmManager && this.bgmManager.initialized) {
+            this.bgmManager.setVolume(value);
+        }
+        
+        // Tone.jsシンセの音量も更新（フォールバック用）
         if (this.synths.bgm) {
             this.synths.bgm.volume.value = Tone.gainToDb(value);
         }
@@ -588,10 +600,15 @@ class SoundManager {
                     Tone.start();
                 }
                 
-                // 全てのBGMトラックを開始
-                Object.values(this.bgmTracks).forEach(track => {
-                    track.start(0);
-                });
+                // BGMManagerが初期化されている場合は初期BGMを開始
+                if (this.bgmManager && this.bgmManager.initialized) {
+                    this.bgmManager.startInitialBGM();
+                } else {
+                    // フォールバック：従来のTone.js BGMシステム
+                    Object.values(this.bgmTracks).forEach(track => {
+                        track.start(0);
+                    });
+                }
                 
                 this.loops.beep.start(0);
                 this.loops.ventilation.start(0);
@@ -606,6 +623,13 @@ class SoundManager {
     
     // BGMを切り替えるメソッド
     changeBGM(floor) {
+        // BGMManagerが初期化されている場合は委譲
+        if (this.bgmManager && this.bgmManager.initialized) {
+            this.bgmManager.changeBGM(floor);
+            return;
+        }
+        
+        // フォールバック：従来のTone.js BGMシステム
         let newBGM = 'deck1';
         
         if (floor >= 20) {
@@ -623,7 +647,7 @@ class SoundManager {
             this.currentBGM = newBGM;
             
             // BGM切り替えをログに出力
-            console.log(`BGM changed from ${oldBGM} to ${newBGM} (Floor ${floor})`);
+            console.log(`BGM changed from ${oldBGM} to ${newBGM} (Floor ${floor}) - Using Tone.js fallback`);
             
             // 短いフェードアウト・フェードイン効果のための音量調整
             if (this.enabled && this.initialized) {
