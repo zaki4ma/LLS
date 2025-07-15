@@ -740,13 +740,6 @@ class RoguelikeGame {
         // 最終スコア計算
         this.calculateFinalScore();
         
-        // エンディング固有のスコアボーナス
-        if (endingType === ENGINE_ROOM_CONFIG.endingTypes.DESTROY) {
-            // 自己犠牲エンディングには英雄ボーナス
-            this.currentScore += 50000;
-            this.addCombatLog('英雄ボーナス: +50,000点');
-        }
-        
         // ランキング保存（エンディング情報をスコアデータに含める）
         const scoreData = {
             score: this.currentScore,
