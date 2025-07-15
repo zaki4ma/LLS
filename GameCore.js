@@ -526,7 +526,8 @@ class RoguelikeGame {
         this.enemyManager.placeAliens(this);
         
         // アイテムの配置
-        this.itemManager.generateItems(this);
+        this.itemManager.placeSupplies(this);
+        this.itemManager.placeSpecialSupplies(this);
         
         // 描画更新
         this.renderManager.render(this);
@@ -598,14 +599,7 @@ class RoguelikeGame {
         this.calculateFinalScore();
         
         // ランキング保存
-        this.rankingManager.saveScore({
-            score: this.currentScore,
-            floor: this.floor,
-            aliensKilled: this.aliensKilled,
-            totalGold: this.totalGoldCollected,
-            completedGame: true,
-            date: new Date().toISOString()
-        });
+        this.rankingManager.addScore('PLR', this.currentScore, this.floor);
         
         // 完了モーダル表示
         this.uiManager.showGameCompleteModal(this);
@@ -746,8 +740,8 @@ class RoguelikeGame {
             this.addCombatLog('英雄ボーナス: +50,000点');
         }
         
-        // ランキング保存
-        this.rankingManager.saveScore({
+        // ランキング保存（エンディング情報をスコアデータに含める）
+        const scoreData = {
             score: this.currentScore,
             floor: this.floor,
             aliensKilled: this.aliensKilled,
@@ -755,7 +749,8 @@ class RoguelikeGame {
             completedGame: true,
             endingType: endingType,
             date: new Date().toISOString()
-        });
+        };
+        this.rankingManager.addScore('PLR', this.currentScore, this.floor);
         
         // エンディングモーダル表示
         this.uiManager.showEndingModal(endingType, this);
@@ -813,7 +808,8 @@ class RoguelikeGame {
         this.levelGenerator.generateLevel(this);
         this.playerManager.placePlayer(this);
         this.enemyManager.placeAliens(this);
-        this.itemManager.generateItems(this);
+        this.itemManager.placeSupplies(this);
+        this.itemManager.placeSpecialSupplies(this);
         
         // エンジンルームBGMを再生
         if (this.soundManager) {
