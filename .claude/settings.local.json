@@ -15,7 +15,8 @@
       "Bash(git checkout:*)",
       "Bash(git branch:*)",
       "Bash(pkill:*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(curl:*)"
     ],
     "deny": []
   }

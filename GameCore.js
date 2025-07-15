@@ -162,7 +162,7 @@ class RoguelikeGame {
             }
             
             // ゲーム関連のキーでブラウザのデフォルト動作を無効化
-            const gameKeys = [' ', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'w', 'W', 'a', 'A', 's', 'S', 'd', 'D', 't', 'T', 'e', 'E', 'q', 'Q', 'h', 'H', '1', '2', '3', 'r', 'R'];
+            const gameKeys = [' ', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'w', 'W', 'a', 'A', 's', 'S', 'd', 'D', 't', 'T', 'e', 'E', 'q', 'Q', 'h', 'H', '1', '2', '3', 'r', 'R', '=', '-'];
             if (gameKeys.includes(e.key)) {
                 e.preventDefault();
             }
@@ -236,6 +236,21 @@ class RoguelikeGame {
                 case 'r':
                 case 'R':
                     this.toggleRangedAttackMode();
+                    return;
+                case '=':
+                case '+':
+                    // BGM音量アップ
+                    if (this.soundManager) {
+                        const newVolume = this.soundManager.increaseBGMVolume();
+                        this.addCombatLog(`BGM音量: ${Math.round(newVolume * 100)}%`);
+                    }
+                    return;
+                case '-':
+                    // BGM音量ダウン
+                    if (this.soundManager) {
+                        const newVolume = this.soundManager.decreaseBGMVolume();
+                        this.addCombatLog(`BGM音量: ${Math.round(newVolume * 100)}%`);
+                    }
                     return;
             }
             
@@ -456,6 +471,12 @@ class RoguelikeGame {
         // ゲームオーバー確認
         if (this.playerManager.player.hp <= 0) {
             this.gameOver = true;
+            
+            // ゲームオーバーBGMを再生
+            if (this.soundManager) {
+                this.soundManager.playGameOverBGM();
+            }
+            
             this.uiManager.showGameOverModal(this);
         }
     }
@@ -545,6 +566,11 @@ class RoguelikeGame {
         this.gameOver = true;
         this.addCombatLog('=== ミッション完了！ ===');
         this.addCombatLog('エンジンルームに到達しました！');
+        
+        // エンディングBGMを再生
+        if (this.soundManager) {
+            this.soundManager.playEndingBGM();
+        }
         
         // 最終スコア計算
         this.calculateFinalScore();

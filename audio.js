@@ -542,6 +542,50 @@ class SoundManager {
         }
     }
     
+    // BGM音量調整メソッド
+    increaseBGMVolume() {
+        if (this.bgmManager && this.bgmManager.initialized) {
+            const newVolume = this.bgmManager.increaseBGMVolume();
+            this.bgmVolume = newVolume;
+            return newVolume;
+        } else {
+            this.bgmVolume = Math.min(1.0, this.bgmVolume + 0.1);
+            this.setBGMVolume(this.bgmVolume);
+            return this.bgmVolume;
+        }
+    }
+    
+    decreaseBGMVolume() {
+        if (this.bgmManager && this.bgmManager.initialized) {
+            const newVolume = this.bgmManager.decreaseBGMVolume();
+            this.bgmVolume = newVolume;
+            return newVolume;
+        } else {
+            this.bgmVolume = Math.max(0.0, this.bgmVolume - 0.1);
+            this.setBGMVolume(this.bgmVolume);
+            return this.bgmVolume;
+        }
+    }
+    
+    // 特別なシーン用BGM
+    playGameOverBGM() {
+        if (this.bgmManager && this.bgmManager.initialized) {
+            this.bgmManager.playGameOverBGM();
+        }
+    }
+    
+    playEndingBGM() {
+        if (this.bgmManager && this.bgmManager.initialized) {
+            this.bgmManager.playEndingBGM();
+        }
+    }
+    
+    playRankingBGM() {
+        if (this.bgmManager && this.bgmManager.initialized) {
+            this.bgmManager.playRankingBGM();
+        }
+    }
+    
     setSFXVolume(value) {
         this.sfxVolume = value;
         // 効果音用のシンセサイザーの音量を更新

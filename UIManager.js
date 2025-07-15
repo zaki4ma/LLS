@@ -448,6 +448,12 @@ class UIManager {
         }
         
         rankingHTML += '</div>';
+        
+        // ランキング表示時にBGMを切り替え
+        if (gameInstance.soundManager) {
+            gameInstance.soundManager.playRankingBGM();
+        }
+        
         this.showModal('ハイスコアランキング', rankingHTML);
     }
 
