@@ -28,6 +28,9 @@ class PlayerManager {
         // 質的アップグレード関連の状態
         this.hasExtraAction = false;
         this.chainBonusDamage = 0;
+        
+        // チートモード用
+        this.godMode = false;
     }
 
     getPlayer() {
@@ -246,6 +249,15 @@ class PlayerManager {
         console.log('=== PlayerManager.processTurn called ===');
         console.log('Before turn - HP:', this.player.hp, 'Oxygen:', this.player.oxygen, 'Power:', this.player.power);
         
+        // 無敵モード時は体力・酸素消費をスキップ
+        if (this.godMode) {
+            console.log('God mode active - skipping health/oxygen consumption');
+            this.player.hp = this.player.maxHp; // 常に満タン
+            this.player.oxygen = this.player.maxOxygen; // 常に満タン
+            this.player.power = this.player.maxPower; // 常に満タン
+            return;
+        }
+        
         // 酸素消費（より緩やかな増加に調整）
         // 新しい計算式：デッキ1-4は1、デッキ5-10は1.3、デッキ11-16は1.6、デッキ17+は1.9
         let oxygenCost = 1;
@@ -460,6 +472,12 @@ class PlayerManager {
         console.log('=== takeDamage called ===');
         console.log('Damage:', damage, 'Current HP:', this.player.hp, 'Critical:', isCritical);
         
+        // 無敵モード時はダメージを受けない
+        if (this.godMode) {
+            gameInstance.addCombatLog('⚡ 無敵モード - ダメージ無効！');
+            return false;
+        }
+        
         // シールドが有効な場合
         if (this.player.shieldActive) {
             console.log('Damage blocked by shield');
@@ -562,6 +580,12 @@ class PlayerManager {
     
     // 被攻撃時の処理（質的アップグレード統合）
     takeDamage(damage, attacker, gameInstance) {
+        // 無敵モード時はダメージを受けない
+        if (this.godMode) {
+            gameInstance.addCombatLog('⚡ 無敵モード - ダメージ無効！');
+            return 0;
+        }
+        
         // 質的アップグレードのシールド判定
         if (this.player.shields > 0) {
             this.player.shields--;

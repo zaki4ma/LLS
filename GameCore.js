@@ -19,6 +19,9 @@ class RoguelikeGame {
         this.selectedRangedWeapon = null;
         this.isRangedAttackMode = false;
         
+        // チートモード（デバッグ用）
+        this.cheatMode = false;
+        
         // スコア統計
         this.aliensKilled = 0;
         this.totalGoldCollected = 0;
@@ -162,7 +165,7 @@ class RoguelikeGame {
             }
             
             // ゲーム関連のキーでブラウザのデフォルト動作を無効化
-            const gameKeys = [' ', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'w', 'W', 'a', 'A', 's', 'S', 'd', 'D', 't', 'T', 'e', 'E', 'q', 'Q', 'h', 'H', '1', '2', '3', 'r', 'R', '=', '-'];
+            const gameKeys = [' ', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'w', 'W', 'a', 'A', 's', 'S', 'd', 'D', 't', 'T', 'e', 'E', 'q', 'Q', 'h', 'H', '1', '2', '3', 'r', 'R', '=', '-', 'c', 'C', 'f', 'F', 'g', 'G'];
             if (gameKeys.includes(e.key)) {
                 e.preventDefault();
             }
@@ -250,6 +253,25 @@ class RoguelikeGame {
                     if (this.soundManager) {
                         const newVolume = this.soundManager.decreaseBGMVolume();
                         this.addCombatLog(`BGM音量: ${Math.round(newVolume * 100)}%`);
+                    }
+                    return;
+                case 'c':
+                case 'C':
+                    // チートモード切り替え（Cキー）
+                    this.toggleCheatMode();
+                    return;
+                case 'f':
+                case 'F':
+                    // チートモード時：デッキ20へ直接移動（Fキー）
+                    if (this.cheatMode) {
+                        this.cheatJumpToFloor20();
+                    }
+                    return;
+                case 'g':
+                case 'G':
+                    // チートモード時：無敵モード切り替え（Gキー）
+                    if (this.cheatMode) {
+                        this.toggleGodMode();
                     }
                     return;
             }
@@ -762,5 +784,61 @@ class RoguelikeGame {
         
         this.currentScore = score;
         this.addCombatLog(`最終スコア計算完了: ${score.toLocaleString()}点`);
+    }
+    
+    // ===== チートコード関連メソッド =====
+    
+    // チートモード切り替え
+    toggleCheatMode() {
+        this.cheatMode = !this.cheatMode;
+        if (this.cheatMode) {
+            this.addCombatLog('🔧 チートモード有効 - F:デッキ20移動, G:無敵モード');
+            // チート時の視覚的表示
+            document.body.style.border = '3px solid #ff0000';
+        } else {
+            this.addCombatLog('🔧 チートモード無効');
+            document.body.style.border = 'none';
+            // 無敵モードも無効化
+            this.playerManager.godMode = false;
+        }
+    }
+    
+    // デッキ20に直接移動
+    cheatJumpToFloor20() {
+        this.addCombatLog('🚀 チート: デッキ20にワープ！');
+        this.floor = 20;
+        this.maxFloorReached = Math.max(this.maxFloorReached, this.floor);
+        
+        // レベルを再生成
+        this.levelGenerator.generateLevel(this);
+        this.playerManager.placePlayer(this);
+        this.enemyManager.placeAliens(this);
+        this.itemManager.generateItems(this);
+        
+        // エンジンルームBGMを再生
+        if (this.soundManager) {
+            this.soundManager.updateBGMForDeck(this.floor);
+        }
+        
+        // 画面更新
+        this.renderManager.render(this);
+        this.uiManager.updateStatus(this);
+        
+        this.addCombatLog('=== エンジンルーム（デッキ20）===');
+        this.addCombatLog('🎯 エンジンコア（⚙）を見つけてエンディングを確認！');
+    }
+    
+    // 無敵モード切り替え
+    toggleGodMode() {
+        this.playerManager.godMode = !this.playerManager.godMode;
+        if (this.playerManager.godMode) {
+            this.addCombatLog('⚡ 無敵モード有効 - 体力・酸素減少なし');
+            // プレイヤーを完全回復
+            this.playerManager.player.hp = this.playerManager.player.maxHp;
+            this.playerManager.player.oxygen = this.playerManager.player.maxOxygen;
+        } else {
+            this.addCombatLog('⚡ 無敵モード無効');
+        }
+        this.uiManager.updateStatus(this);
     }
 }
