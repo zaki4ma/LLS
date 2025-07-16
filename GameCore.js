@@ -47,6 +47,9 @@ class RoguelikeGame {
         // 通信システムを再度有効化
         this.communicationManager = new CommunicationManager();
         
+        // ログシステムの初期化
+        this.logManager = new GameLogManager();
+        
         this.uiManager.init(this);
         this.init();
         
@@ -64,6 +67,9 @@ class RoguelikeGame {
         
         // 質的アップグレードアイコンのクリックイベントを設定
         this.setupUpgradeClickEvents();
+        
+        // グローバルアクセス用
+        window.gameInstance = this;
     }
 
     // 初期化とサウンド関連のメソッド
@@ -570,7 +576,9 @@ class RoguelikeGame {
         
         // 音響効果
         if (this.soundManager) {
-            this.soundManager.playEnemyDeath();
+            if (this.soundManager && this.soundManager.playSound) {
+                this.soundManager.playSound('enemyDeath');
+            }
         }
     }
     

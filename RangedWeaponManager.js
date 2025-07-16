@@ -370,7 +370,12 @@ class RangedWeaponManager {
                     // 電撃音：短いパルス音
                     for (let i = 0; i < 3; i++) {
                         setTimeout(() => {
-                            gameInstance.soundManager.synths.attack.triggerAttackRelease('G5', '0.05');
+                            try {
+                                const now = Tone.now();
+                                gameInstance.soundManager.synths.attack.triggerAttackRelease('G5', '0.05', now + 0.01);
+                            } catch (error) {
+                                console.warn('Sound timing error:', error);
+                            }
                         }, i * 50);
                     }
                     break;

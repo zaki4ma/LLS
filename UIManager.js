@@ -947,7 +947,13 @@ class UIManager {
         // ランキング表示ボタン
         document.getElementById('show-ranking-btn').onclick = () => {
             modal.remove();
-            this.showRankingModal(gameInstance);
+            if (this.showRankingModal) {
+                this.showRankingModal(gameInstance);
+            } else if (gameInstance && gameInstance.rankingManager && gameInstance.rankingManager.showRankingModal) {
+                gameInstance.rankingManager.showRankingModal();
+            } else {
+                console.error('showRankingModal not found');
+            }
         };
         
         // 5秒後に自動でランキング表示ボタンをハイライト

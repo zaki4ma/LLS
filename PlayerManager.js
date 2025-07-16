@@ -146,6 +146,11 @@ class PlayerManager {
     }
 
     attackAlien(alien, gameInstance) {
+        // 戦闘開始ログ
+        if (gameInstance.logManager) {
+            gameInstance.logManager.combatLogger.logCombatStart(this.player, alien);
+        }
+        
         // クリティカル判定
         const isCritical = Math.random() < this.player.criticalChance;
         
@@ -157,6 +162,11 @@ class PlayerManager {
             gameInstance.addCombatLog(
                 `${alien.typeData.name}が攻撃を回避した！ (${dodgeResult.chance}%)`
             );
+            
+            // 攻撃ログ（回避）
+            if (gameInstance.logManager) {
+                gameInstance.logManager.combatLogger.logAttack(this.player, alien, 0, isCritical, true);
+            }
             
             // 回避エフェクト表示
             gameInstance.renderManager.showFloatingText(
@@ -184,6 +194,11 @@ class PlayerManager {
         
         alien.hp -= damage;
         
+        // 攻撃ログ（命中）
+        if (gameInstance.logManager) {
+            gameInstance.logManager.combatLogger.logAttack(this.player, alien, damage, isCritical, false);
+        }
+        
         // ログ表示（クリティカル時は特別な表示）
         if (isCritical) {
             gameInstance.addCombatLog(`💥 CRITICAL HIT！${alien.typeData.name}に${damage}ダメージ！`);
@@ -207,6 +222,11 @@ class PlayerManager {
             gameInstance.aliensKilled++;
             gameInstance.encounteredEnemies.add(alien.type);
             gameInstance.addCombatLog(`${alien.typeData.name}を倒した！ EXP+${alien.expReward}, Gold+${alien.goldReward}`);
+            
+            // 戦闘終了ログ（勝利）
+            if (gameInstance.logManager) {
+                gameInstance.logManager.combatLogger.logCombatEnd(this.player, alien, 'victory', 1);
+            }
             
             // 質的アップグレード：チェインストライク判定
             gameInstance.qualitativeUpgradeManager.onEnemyKilled(alien, damage, gameInstance);

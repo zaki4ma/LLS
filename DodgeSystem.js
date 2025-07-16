@@ -163,11 +163,17 @@ class DodgeSystem {
                 const x = player.x + dx;
                 const y = player.y + dy;
                 try {
-                    if (gameInstance.enemyManager.getEnemyAt(x, y)) {
-                        count++;
+                    // getEnemyAtメソッドが存在しない場合の代替実装
+                    if (gameInstance.aliens) {
+                        const enemy = gameInstance.aliens.find(alien => 
+                            alien.alive && alien.x === x && alien.y === y
+                        );
+                        if (enemy) {
+                            count++;
+                        }
                     }
                 } catch (error) {
-                    console.warn('Error checking enemy at', x, y, error);
+                    // エラーログは表示しない（頻繁に呼ばれるため）
                 }
             }
         }
