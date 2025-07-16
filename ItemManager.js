@@ -122,6 +122,12 @@ class ItemManager {
         supply.taken = true;
         player.gold += supply.gold;
         gameInstance.totalGoldCollected += supply.gold;
+        
+        // アイテム取得ログ
+        if (gameInstance.logManager) {
+            gameInstance.logManager.economyLogger.logItemCollection('gold', supply.gold, player);
+        }
+        
         gameInstance.addCombatLog(`金庫コンテナを発見！ Gold+${supply.gold}`);
         if (gameInstance.soundManager) gameInstance.soundManager.playCollect('gold');
         gameInstance.grid[supply.y][supply.x] = 'floor';
@@ -135,6 +141,12 @@ class ItemManager {
         const oldOxygen = player.oxygen;
         player.oxygen = Math.min(player.maxOxygen, player.oxygen + oxygenSupply.oxygen);
         const actualOxygen = player.oxygen - oldOxygen;
+        
+        // アイテム取得ログ
+        if (gameInstance.logManager) {
+            gameInstance.logManager.economyLogger.logItemCollection('oxygen', actualOxygen, player);
+        }
+        
         gameInstance.addCombatLog(`酸素コンテナを発見！ 酸素+${actualOxygen}`);
         if (gameInstance.soundManager) gameInstance.soundManager.playCollect('oxygen');
         gameInstance.grid[oxygenSupply.y][oxygenSupply.x] = 'floor';
@@ -148,6 +160,12 @@ class ItemManager {
         const oldHp = player.hp;
         player.hp = Math.min(player.maxHp, player.hp + medicalSupply.healing);
         const actualHealing = player.hp - oldHp;
+        
+        // アイテム取得ログ
+        if (gameInstance.logManager) {
+            gameInstance.logManager.economyLogger.logItemCollection('health', actualHealing, player);
+        }
+        
         gameInstance.addCombatLog(`医療コンテナを発見！ HP+${actualHealing}`);
         if (gameInstance.soundManager) gameInstance.soundManager.playCollect('medical');
         gameInstance.grid[medicalSupply.y][medicalSupply.x] = 'floor';

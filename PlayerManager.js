@@ -23,7 +23,8 @@ class PlayerManager {
             shieldDuration: 0, // シールドの残りターン数
             facing: 'down', // プレイヤーの向き: 'up', 'down', 'left', 'right'
             dodgeBonus: 0, // 装備やアップグレードによる回避ボーナス
-            onElevator: false // エレベーター上にいるかどうか
+            onElevator: false, // エレベーター上にいるかどうか
+            gameInstance: null // ゲームインスタンスへの参照
         };
         // 質的アップグレード関連の状態
         this.hasExtraAction = false;
@@ -40,6 +41,7 @@ class PlayerManager {
     placePlayer(gameInstance) {
         // プレイヤーの位置はLevelGeneratorで設定されるため、ここでは何もしない
         // 必要に応じて追加の初期化処理を行う
+        this.player.gameInstance = gameInstance;
         console.log('Player placed at:', this.player.x, this.player.y);
     }
 
@@ -152,7 +154,17 @@ class PlayerManager {
         }
         
         // クリティカル判定
-        const isCritical = Math.random() < this.player.criticalChance;
+        const randomValue = Math.random();
+        const isCritical = randomValue < this.player.criticalChance;
+        
+        // デバッグ用ログ
+        if (gameInstance.logManager) {
+            gameInstance.logManager.gameLogger.debug('COMBAT', 'critical_check', {
+                randomValue: randomValue,
+                criticalChance: this.player.criticalChance,
+                isCritical: isCritical
+            });
+        }
         
         // 敵の回避判定
         const dodgeResult = gameInstance.dodgeSystem.checkEnemyDodge(alien, isCritical, gameInstance);
@@ -246,6 +258,7 @@ class PlayerManager {
 
     checkLevelUp(gameInstance) {
         if (this.player.exp >= this.player.expToNext) {
+            const oldLevel = this.player.level;
             this.player.level++;
             this.player.exp -= this.player.expToNext;
             this.player.expToNext = Math.floor(this.player.expToNext * 1.2);
@@ -257,6 +270,11 @@ class PlayerManager {
             // レベルアップ時にクリティカル率も微増（最大30%まで）
             if (this.player.criticalChance < 0.30) {
                 this.player.criticalChance = Math.min(0.30, this.player.criticalChance + 0.02);
+            }
+            
+            // レベルアップログ
+            if (gameInstance.logManager) {
+                gameInstance.logManager.progressionLogger.logLevelUp(this.player, oldLevel, this.player.level);
             }
             
             gameInstance.addCombatLog(`レベルアップ！ Lv.${this.player.level} HP、攻撃力、防御力が上昇！`);

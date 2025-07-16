@@ -526,8 +526,16 @@ class RoguelikeGame {
         // フロア移動前の処理
         this.qualitativeUpgradeManager.onFloorChange(this);
         
+        const oldFloor = this.floor;
         this.floor++;
         this.maxFloorReached = Math.max(this.maxFloorReached, this.floor);
+        
+        // フロア移動ログ
+        if (this.logManager) {
+            this.logManager.progressionLogger.logFloorProgress(oldFloor, this.playerManager.player, Date.now() - this.floorStartTime || 0);
+        }
+        
+        this.floorStartTime = Date.now();
         
         // 新しいフロアの生成
         this.init();

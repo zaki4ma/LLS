@@ -184,6 +184,12 @@ class UpgradeManager {
         if (gameInstance.playerManager.player.gold >= ability.cost) {
             gameInstance.playerManager.player.gold -= ability.cost;
             gameInstance.playerManager.player.abilities[abilityKey].unlocked = true;
+            
+            // アップグレード購入ログ
+            if (gameInstance.logManager) {
+                gameInstance.logManager.economyLogger.logUpgradePurchase(abilityKey, 1, ability.cost, gameInstance.playerManager.player);
+            }
+            
             gameInstance.addCombatLog(`${ability.name}を購入しました！`);
             gameInstance.uiManager.updateStatus(gameInstance);
         } else {
@@ -218,6 +224,12 @@ class UpgradeManager {
             if (!ability.passive) {
                 gameInstance.playerManager.player.abilities[abilityKey].uses = gameInstance.playerManager.player.abilities[abilityKey].maxUses;
             }
+            
+            // アップグレード購入ログ
+            if (gameInstance.logManager) {
+                gameInstance.logManager.economyLogger.logUpgradePurchase(abilityKey, 1, ability.cost, gameInstance.playerManager.player);
+            }
+            
             gameInstance.addCombatLog(`${ability.name}を購入しました！`);
             gameInstance.uiManager.updateStatus(gameInstance);
         } else {

@@ -325,7 +325,7 @@ class CombatLogger {
         attack: enemy.attack,
         defense: enemy.defense || 0
       },
-      floor: player.gameInstance?.floor || 0,
+      floor: player.floor || player.gameInstance?.floor || 0,
       position: { x: player.x, y: player.y }
     });
   }
@@ -394,7 +394,7 @@ class ProgressionLogger {
     this.logger.info('PROGRESSION', 'level_up', {
       oldLevel: oldLevel,
       newLevel: newLevel,
-      floor: player.gameInstance?.floor || 0,
+      floor: player.floor || player.gameInstance?.floor || 0,
       experience: player.experience || 0,
       statsIncrease: {
         hp: 10,
@@ -435,7 +435,7 @@ class EconomyLogger {
       cost: cost,
       goldBefore: player.gold + cost,
       goldAfter: player.gold,
-      floor: player.gameInstance?.floor || 0,
+      floor: player.floor || player.gameInstance?.floor || 0,
       playerLevel: player.level
     });
   }
@@ -444,7 +444,7 @@ class EconomyLogger {
     this.logger.info('ECONOMY', 'item_collected', {
       itemType: itemType,
       value: value,
-      floor: player.gameInstance?.floor || 0,
+      floor: player.floor || player.gameInstance?.floor || 0,
       playerState: {
         hp: player.hp,
         oxygen: player.oxygen,
@@ -546,11 +546,98 @@ class GameLogManager {
       if (avgTurns > 5) {
         recommendations.push({
           type: 'COMBAT_BALANCE',
+          severity: 'HIGH',
           suggestion: 'Combat is taking too long on average. Consider increasing player attack power or reducing enemy HP.'
+        });
+      } else if (avgTurns < 1.5) {
+        recommendations.push({
+          type: 'COMBAT_BALANCE',
+          severity: 'MEDIUM',
+          suggestion: 'Combat is too quick. Consider increasing enemy HP or reducing player attack power.'
+        });
+      }
+    }
+    
+    // クリティカル率の分析
+    const attackLogs = this.gameLogger.getLogsByEvent('attack');
+    const criticalAttacks = attackLogs.filter(log => log.data.isCritical);
+    const criticalRate = attackLogs.length > 0 ? criticalAttacks.length / attackLogs.length : 0;
+    
+    if (criticalRate < 0.10) {
+      recommendations.push({
+        type: 'CRITICAL_RATE',
+        severity: 'HIGH',
+        suggestion: 'Critical hit rate is too low. Check critical chance calculation.'
+      });
+    }
+    
+    // 進行速度の分析
+    const floorLogs = this.gameLogger.getLogsByEvent('floor_complete');
+    if (floorLogs.length > 0) {
+      const avgFloorTime = floorLogs.reduce((sum, log) => sum + log.data.timeSpent, 0) / floorLogs.length;
+      
+      if (avgFloorTime > 60000) { // 1分以上
+        recommendations.push({
+          type: 'PROGRESSION_SPEED',
+          severity: 'MEDIUM',
+          suggestion: 'Floor completion time is too long. Consider adjusting enemy density or player movement speed.'
         });
       }
     }
     
     return recommendations;
+  }
+  
+  // 詳細な戦闘分析
+  analyzeCombatMetrics() {
+    const combatLogs = this.gameLogger.getLogsByEvent('combat_end');
+    const attackLogs = this.gameLogger.getLogsByEvent('attack');
+    
+    const metrics = {
+      totalCombats: combatLogs.length,
+      victories: combatLogs.filter(log => log.data.result === 'victory').length,
+      defeats: combatLogs.filter(log => log.data.result === 'defeat').length,
+      avgTurnsPerCombat: combatLogs.length > 0 ? 
+        combatLogs.reduce((sum, log) => sum + log.data.turnsElapsed, 0) / combatLogs.length : 0,
+      criticalRate: attackLogs.length > 0 ? 
+        attackLogs.filter(log => log.data.isCritical).length / attackLogs.length : 0,
+      dodgeRate: attackLogs.length > 0 ? 
+        attackLogs.filter(log => log.data.dodged).length / attackLogs.length : 0,
+      avgDamagePerHit: attackLogs.length > 0 ? 
+        attackLogs.reduce((sum, log) => sum + log.data.damage, 0) / attackLogs.length : 0
+    };
+    
+    return metrics;
+  }
+  
+  // 敵タイプ別の分析
+  analyzeEnemyTypes() {
+    const combatStartLogs = this.gameLogger.getLogsByEvent('combat_start');
+    const enemyTypes = {};
+    
+    combatStartLogs.forEach(log => {
+      const enemyType = log.data.enemy.type;
+      if (!enemyTypes[enemyType]) {
+        enemyTypes[enemyType] = {
+          encounters: 0,
+          totalHp: 0,
+          totalAttack: 0,
+          avgTurnsToDefeat: 0
+        };
+      }
+      
+      enemyTypes[enemyType].encounters++;
+      enemyTypes[enemyType].totalHp += log.data.enemy.hp;
+      enemyTypes[enemyType].totalAttack += log.data.enemy.attack;
+    });
+    
+    // 平均値を計算
+    Object.keys(enemyTypes).forEach(type => {
+      const data = enemyTypes[type];
+      data.avgHp = data.totalHp / data.encounters;
+      data.avgAttack = data.totalAttack / data.encounters;
+    });
+    
+    return enemyTypes;
   }
 }
